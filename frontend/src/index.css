@@ -1,0 +1,20 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Saytdagi BARCHA tugmalar va havolalar uchun mikron-animatsiya */
+button, a {
+  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), 
+              background-color 0.2s ease, 
+              box-shadow 0.2s ease !important;
+}
+
+/* Sichqoncha ustiga borganda (Hover) - ozgina yuqoriga ko'tariladi */
+button:hover, a:hover {
+  transform: translateY(-1px);
+}
+
+/* Bosilganda (Click / Active) - xuddi mobil ilovalardagidek silliq eziladi */
+button:active, a:active {
+  transform: scale(0.95) !important;
+}

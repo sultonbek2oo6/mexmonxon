@@ -1,0 +1,428 @@
+import React, { useState } from 'react';
+import { useOutletContext } from 'react-router-dom';
+
+const Rooms = () => {
+  // Context orqali isDarkMode holatini olish
+  const { isDarkMode } = useOutletContext();
+
+  const [selectedType, setSelectedType] = useState('Barcha');
+  const [priceRange, setPriceRange] = useState(300);
+  const [selectedFloor, setSelectedFloor] = useState('Barcha');
+  const [favorites, setFavorites] = useState([]);
+
+  const [dates, setDates] = useState('26.04.2025 - 28.04.2025');
+  const [guests, setGuests] = useState('2 katta, 0 bola');
+
+  const [activeBookingRoom, setActiveBookingRoom] = useState(null);
+  const [isSuccess, setIsSuccess] = useState(false);
+
+  const allRooms = [
+    {
+      id: 1,
+      title: 'Standart xona',
+      type: 'Standart',
+      price: 80,
+      capacity: '2 mehmon',
+      size: '25 m²',
+      floor: '1-qavat',
+      rating: 4.8,
+      reviews: 94,
+      badge: 'Shinam',
+      image: 'https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&q=80&w=800'
+    },
+    {
+      id: 2,
+      title: 'Deluxe xona',
+      type: 'Deluxe',
+      price: 120,
+      capacity: '2 mehmon',
+      size: '35 m²',
+      floor: '2-qavat',
+      rating: 4.9,
+      reviews: 142,
+      badge: 'Mashhur',
+      image: 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&q=80&w=800'
+    },
+    {
+      id: 3,
+      title: 'Family xona',
+      type: 'Family',
+      price: 160,
+      capacity: '4 mehmon',
+      size: '50 m²',
+      floor: '2-qavat',
+      rating: 4.7,
+      reviews: 88,
+      badge: 'Oila uchun',
+      image: 'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&q=80&w=800'
+    },
+    {
+      id: 4,
+      title: 'Suite xona',
+      type: 'Suite',
+      price: 250,
+      capacity: '4 mehmon',
+      size: '70 m²',
+      floor: '3-qavat',
+      rating: 5.0,
+      reviews: 65,
+      badge: 'Top Tanlov',
+      image: 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?auto=format&fit=crop&q=80&w=800'
+    }
+  ];
+
+  const toggleFavorite = (id) => {
+    if (favorites.includes(id)) {
+      setFavorites(favorites.filter((favId) => favId !== id));
+    } else {
+      setFavorites([...favorites, id]);
+    }
+  };
+
+  const filteredRooms = allRooms.filter((room) => {
+    const matchesType = selectedType === 'Barcha' || room.type === selectedType;
+    const matchesPrice = room.price <= priceRange;
+    const matchesFloor = selectedFloor === 'Barcha' || room.floor === selectedFloor;
+    return matchesType && matchesPrice && matchesFloor;
+  });
+
+  const handleConfirmBooking = (e) => {
+    e.preventDefault();
+    setIsSuccess(true);
+    setTimeout(() => {
+      setActiveBookingRoom(null);
+      setIsSuccess(false);
+    }, 2000);
+  };
+
+  return (
+    <div className={`py-8 relative transition-colors duration-500 ${isDarkMode ? 'text-slate-100' : 'text-slate-800'}`}>
+      
+      {/* Background Glows (Tun rejimida) */}
+      {isDarkMode && (
+        <>
+          <div className="absolute top-0 left-1/4 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl pointer-events-none"></div>
+          <div className="absolute top-1/3 right-10 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+        </>
+      )}
+
+      <div className="max-w-7xl mx-auto px-6 relative z-10">
+        
+        {/* Sarlavha va Mini Panel */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
+          <div>
+            <h1 className={`text-4xl font-extrabold tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+              Xonalarimiz
+            </h1>
+            <p className={`text-sm mt-2 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+              Siz uchun eng qulay va unutilmas xonalar toplami.
+            </p>
+          </div>
+
+          <div className={`p-2.5 px-5 rounded-2xl border shadow-md flex flex-wrap items-center gap-4 text-xs font-medium ${
+            isDarkMode 
+              ? 'bg-slate-800/60 backdrop-blur-md border-slate-700/60 text-slate-300' 
+              : 'bg-white border-slate-200 text-slate-600'
+          }`}>
+            <div className={`flex items-center gap-2 border-r pr-4 ${isDarkMode ? 'border-slate-700' : 'border-slate-200'}`}>
+              <svg className="w-4 h-4 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <span>{dates}</span>
+            </div>
+
+            <div className={`flex items-center gap-2 border-r pr-4 ${isDarkMode ? 'border-slate-700' : 'border-slate-200'}`}>
+              <svg className="w-4 h-4 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+              <span>{guests}</span>
+            </div>
+
+            <button className="bg-teal-600 hover:bg-teal-500 text-white font-bold px-5 py-2.5 rounded-xl text-xs transition-all shadow-md">
+              Qidirish
+            </button>
+          </div>
+        </div>
+
+        {/* Filtr va Xonalar Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+          
+          {/* CHAP FILTR */}
+          <div className={`p-6 rounded-3xl border shadow-xl h-fit space-y-6 ${
+            isDarkMode 
+              ? 'bg-slate-800/40 backdrop-blur-xl border-slate-700/50' 
+              : 'bg-white border-slate-200/80 shadow-slate-200/50'
+          }`}>
+            <div className="flex items-center justify-between">
+              <h2 className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+                Filtrlash
+              </h2>
+              <button 
+                onClick={() => { setSelectedType('Barcha'); setPriceRange(300); setSelectedFloor('Barcha'); }}
+                className="text-xs text-teal-500 hover:underline"
+              >
+                Tozalash
+              </button>
+            </div>
+
+            {/* Xona turi */}
+            <div>
+              <label className={`block text-xs font-bold uppercase tracking-wider mb-3 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                Xona turi
+              </label>
+              <div className="space-y-2">
+                {['Barcha', 'Standart', 'Deluxe', 'Family', 'Suite'].map((type) => (
+                  <label 
+                    key={type} 
+                    className={`flex items-center justify-between p-2.5 rounded-xl cursor-pointer transition-all border ${
+                      selectedType === type 
+                        ? (isDarkMode ? 'bg-teal-500/10 border-teal-500/50 text-teal-300 font-semibold' : 'bg-teal-50 border-teal-200 text-teal-700 font-semibold')
+                        : (isDarkMode ? 'border-transparent hover:bg-slate-700/30 text-slate-300' : 'border-transparent hover:bg-slate-100 text-slate-700')
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="radio"
+                        name="roomType"
+                        checked={selectedType === type}
+                        onChange={() => setSelectedType(type)}
+                        className="hidden"
+                      />
+                      <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${
+                        selectedType === type ? 'border-teal-500 bg-teal-500' : (isDarkMode ? 'border-slate-600' : 'border-slate-300')
+                      }`}>
+                        {selectedType === type && <div className="w-1.5 h-1.5 rounded-full bg-white"></div>}
+                      </div>
+                      <span className="text-sm">{type}</span>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <hr className={isDarkMode ? 'border-slate-700/60' : 'border-slate-200'} />
+
+            {/* Narx */}
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                <label className={`text-xs font-bold uppercase tracking-wider ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                  Maksimal Narx
+                </label>
+                <span className="text-sm font-extrabold text-teal-500">${priceRange}</span>
+              </div>
+              <input
+                type="range"
+                min="50"
+                max="300"
+                step="10"
+                value={priceRange}
+                onChange={(e) => setPriceRange(Number(e.target.value))}
+                className="w-full h-2 bg-slate-300 rounded-lg appearance-none cursor-pointer accent-teal-500"
+              />
+              <div className={`flex justify-between text-[11px] font-semibold mt-2 ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                <span>$50</span>
+                <span>$300</span>
+              </div>
+            </div>
+
+            <hr className={isDarkMode ? 'border-slate-700/60' : 'border-slate-200'} />
+
+            {/* Qavat */}
+            <div>
+              <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                Qavatni tanlang
+              </label>
+              <select
+                value={selectedFloor}
+                onChange={(e) => setSelectedFloor(e.target.value)}
+                className={`w-full rounded-xl p-3 text-sm font-medium border focus:outline-none focus:border-teal-500 ${
+                  isDarkMode 
+                    ? 'bg-slate-900/80 border-slate-700 text-slate-200' 
+                    : 'bg-slate-50 border-slate-200 text-slate-800'
+                }`}
+              >
+                <option value="Barcha">Barcha qavatlar</option>
+                <option value="1-qavat">1-qavat</option>
+                <option value="2-qavat">2-qavat</option>
+                <option value="3-qavat">3-qavat</option>
+              </select>
+            </div>
+          </div>
+
+          {/* O'NG GRID */}
+          <div className="lg:col-span-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {filteredRooms.map((room) => {
+                const isFav = favorites.includes(room.id);
+                return (
+                  <div
+                    key={room.id}
+                    className={`group rounded-3xl overflow-hidden border transition-all duration-500 flex flex-col justify-between hover:shadow-2xl ${
+                      isDarkMode 
+                        ? 'bg-slate-800/50 backdrop-blur-md border-slate-700/60 hover:border-teal-500/40' 
+                        : 'bg-white border-slate-200/80 hover:border-teal-500/40 hover:shadow-slate-300/50'
+                    }`}
+                  >
+                    <div>
+                      <div className="h-60 overflow-hidden relative">
+                        <img
+                          src={room.image}
+                          alt={room.title}
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20"></div>
+
+                        <span className="absolute top-4 left-4 bg-slate-900/80 backdrop-blur-md border border-slate-700 text-teal-300 text-[11px] font-bold px-3 py-1 rounded-full">
+                          {room.badge}
+                        </span>
+
+                        <button
+                          onClick={() => toggleFavorite(room.id)}
+                          className="absolute top-4 right-4 w-9 h-9 rounded-full bg-slate-900/60 backdrop-blur-md border border-slate-700 flex items-center justify-center text-white hover:scale-110 transition"
+                        >
+                          <svg
+                            className={`w-4 h-4 transition-colors ${isFav ? 'fill-red-500 text-red-500' : 'fill-none stroke-white'}`}
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.684a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                          </svg>
+                        </button>
+
+                        <div className="absolute bottom-3 left-4 flex items-center gap-1.5 bg-black/50 backdrop-blur-md px-2.5 py-1 rounded-lg text-xs text-white">
+                          <span className="text-amber-400">★</span>
+                          <span className="font-bold">{room.rating}</span>
+                          <span className="text-slate-300">({room.reviews})</span>
+                        </div>
+                      </div>
+
+                      <div className="p-6">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h3 className={`text-xl font-bold transition-colors ${
+                              isDarkMode ? 'text-white group-hover:text-teal-300' : 'text-slate-900 group-hover:text-teal-600'
+                            }`}>
+                              {room.title}
+                            </h3>
+                            <p className={`text-xs mt-1 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>{room.floor}</p>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-2xl font-black text-teal-500">${room.price}</span>
+                            <span className={`text-xs block font-normal ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>/ kecha</span>
+                          </div>
+                        </div>
+
+                        <div className={`grid grid-cols-2 gap-3 text-xs font-medium mt-6 pt-4 border-t ${
+                          isDarkMode ? 'border-slate-700/50 text-slate-300' : 'border-slate-100 text-slate-600'
+                        }`}>
+                          <div className="flex items-center gap-2">
+                            <svg className="w-4 h-4 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
+                            <span>{room.capacity}</span>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <svg className="w-4 h-4 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 4l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                            </svg>
+                            <span>{room.size}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="p-6 pt-0">
+                      <button
+                        onClick={() => setActiveBookingRoom(room)}
+                        className="w-full py-3.5 bg-teal-600 hover:bg-teal-500 text-white font-bold rounded-2xl text-sm transition-all shadow-md transform hover:-translate-y-0.5"
+                      >
+                        Bron qilish
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      {/* MODAL */}
+      {activeBookingRoom && (
+        <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm transition-opacity">
+          <div className={`w-full max-w-md h-full p-8 shadow-2xl border-l flex flex-col justify-between overflow-y-auto ${
+            isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-800'
+          }`}>
+            <div>
+              <div className={`flex items-center justify-between border-b pb-4 mb-6 ${isDarkMode ? 'border-slate-800' : 'border-slate-100'}`}>
+                <h3 className="text-xl font-bold">Xonani Bron Qilish</h3>
+                <button 
+                  onClick={() => setActiveBookingRoom(null)}
+                  className={`p-1 rounded-lg hover:bg-slate-500/10 ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}
+                >
+                  ✕
+                </button>
+              </div>
+
+              {isSuccess ? (
+                <div className="text-center py-12 space-y-4">
+                  <div className="w-16 h-16 bg-emerald-500/20 text-emerald-500 border border-emerald-500/40 rounded-full flex items-center justify-center mx-auto text-2xl font-bold">
+                    ✓
+                  </div>
+                  <h4 className="text-xl font-bold">Muvaffaqiyatli bron qilindi!</h4>
+                  <p className={`text-sm ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Tez orada operatorimiz siz bilan bog'lanadi.</p>
+                </div>
+              ) : (
+                <form onSubmit={handleConfirmBooking} className="space-y-5">
+                  <div className={`p-4 rounded-2xl border flex items-center gap-4 ${
+                    isDarkMode ? 'bg-slate-800/60 border-slate-700/60' : 'bg-slate-50 border-slate-200'
+                  }`}>
+                    <img src={activeBookingRoom.image} alt="" className="w-16 h-16 rounded-xl object-cover" />
+                    <div>
+                      <h4 className="font-bold text-sm">{activeBookingRoom.title}</h4>
+                      <p className="text-teal-500 font-bold text-sm">${activeBookingRoom.price} / kecha</p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className={`block text-xs font-semibold uppercase mb-1 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>To'liq ismingiz</label>
+                    <input required type="text" placeholder="Ali Valiyev" className={`w-full border rounded-xl p-3 text-sm focus:outline-none focus:border-teal-500 ${
+                      isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`} />
+                  </div>
+
+                  <div>
+                    <label className={`block text-xs font-semibold uppercase mb-1 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Telefon raqamingiz</label>
+                    <input required type="tel" placeholder="+998 90 123 45 67" className={`w-full border rounded-xl p-3 text-sm focus:outline-none focus:border-teal-500 ${
+                      isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`} />
+                  </div>
+
+                  <div className={`pt-4 border-t ${isDarkMode ? 'border-slate-800' : 'border-slate-100'}`}>
+                    <div className="flex justify-between text-sm font-semibold mb-2">
+                      <span>Jami to'lov:</span>
+                      <span className="text-teal-500 font-extrabold text-base">${activeBookingRoom.price * 2} (2 kecha)</span>
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="w-full py-4 bg-teal-600 hover:bg-teal-500 text-white font-extrabold rounded-2xl text-sm transition shadow-md"
+                  >
+                    Bron qilishni tasdiqlash
+                  </button>
+                </form>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+};
+
+export default Rooms;
