@@ -12,7 +12,7 @@ const ClientLayout = ({ isDarkMode, toggleDarkMode }) => {
 
   // Profil ma'lumotlari holati
   const [userInfo, setUserInfo] = useState({
-    fullName: localStorage.getItem('fullName') || 'Sultanbek Jolraboyev',
+    fullName: localStorage.getItem('fullName') || 'Sultonbek Juraboyev',
     email: localStorage.getItem('email') || 'user@grandhotel.uz',
     phone: localStorage.getItem('phone') || '+998 90 123 45 67',
     passport: localStorage.getItem('passport') || 'AA 1234567',
