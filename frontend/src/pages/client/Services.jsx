@@ -77,7 +77,7 @@ const Services = () => {
   };
 
   return (
-    <div className={`py-10 relative transition-colors duration-500 ${isDarkMode ? 'text-slate-100' : 'text-slate-800'}`}>
+    <div className={`py-6 sm:py-10 relative transition-colors duration-500 ${isDarkMode ? 'text-slate-100' : 'text-slate-800'}`}>
       
       {/* Tun rejimida orqa fonga chiroyli glow effekti */}
       {isDarkMode && (
@@ -87,32 +87,32 @@ const Services = () => {
         </>
       )}
 
-      <div className="max-w-7xl mx-auto px-6 relative z-10">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 relative z-10">
         
         {/* Sahifa sarlavhasi */}
-        <div className="mb-12">
-          <h1 className={`text-4xl font-extrabold tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+        <div className="mb-6 sm:mb-12">
+          <h1 className={`text-2xl sm:text-4xl font-extrabold tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
             Xizmatlarimiz
           </h1>
-          <p className={`text-sm mt-2 font-medium ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+          <p className={`text-xs sm:text-sm mt-1 sm:mt-2 font-medium ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
             Qo'shimcha xizmatlarimizdan foydalaning va hordiq chiqarishni yanada maroqli qiling.
           </p>
         </div>
 
-        {/* Xizmatlar Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {/* Xizmatlar Grid - Bitta qatorga 2 tadan qilindi */}
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-8">
           {servicesList.map((service) => (
             <div
               key={service.id}
-              className={`group rounded-3xl overflow-hidden border transition-all duration-500 flex flex-col justify-between hover:shadow-2xl transform hover:-translate-y-1 ${
+              className={`group rounded-2xl sm:rounded-3xl overflow-hidden border transition-all duration-500 flex flex-col justify-between hover:shadow-2xl transform hover:-translate-y-1 ${
                 isDarkMode
                   ? 'bg-slate-800/40 backdrop-blur-xl border-slate-700/60 hover:border-teal-500/40'
                   : 'bg-white border-slate-200/80 hover:border-teal-500/40 hover:shadow-slate-300/50'
               }`}
             >
               <div>
-                {/* Rasm */}
-                <div className="h-56 overflow-hidden relative">
+                {/* Rasm balandligi mobilda moslashtirildi */}
+                <div className="h-28 sm:h-36 md:h-56 overflow-hidden relative">
                   <img
                     src={service.image}
                     alt={service.title}
@@ -120,35 +120,35 @@ const Services = () => {
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20"></div>
 
-                  <span className="absolute top-4 left-4 bg-slate-900/80 backdrop-blur-md border border-slate-700 text-teal-300 text-[11px] font-bold px-3 py-1 rounded-full">
+                  <span className="absolute top-2 left-2 sm:top-4 sm:left-4 bg-slate-900/80 backdrop-blur-md border border-slate-700 text-teal-300 text-[9px] sm:text-[11px] font-bold px-2 sm:px-3 py-0.5 sm:py-1 rounded-full">
                     {service.badge}
                   </span>
 
-                  <div className="absolute bottom-3 left-4 flex items-center gap-1.5 bg-black/50 backdrop-blur-md px-2.5 py-1 rounded-lg text-xs text-white">
+                  <div className="absolute bottom-2 left-2 sm:bottom-3 sm:left-4 flex items-center gap-1.5 bg-black/50 backdrop-blur-md px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg text-[10px] sm:text-xs text-white">
                     <span className="text-amber-400">★</span>
                     <span className="font-bold">{service.rating}</span>
                   </div>
                 </div>
 
                 {/* Ma'lumot */}
-                <div className="p-6">
-                  <h3 className={`text-2xl font-bold transition-colors ${
+                <div className="p-3 sm:p-6">
+                  <h3 className={`text-sm sm:text-2xl font-bold transition-colors line-clamp-1 ${
                     isDarkMode ? 'text-white group-hover:text-teal-300' : 'text-slate-900 group-hover:text-teal-600'
                   }`}>
                     {service.title}
                   </h3>
-                  <p className="text-sm font-semibold text-teal-500 mt-1">{service.desc}</p>
-                  <p className={`text-xs mt-3 leading-relaxed ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                  <p className="text-[11px] sm:text-sm font-semibold text-teal-500 mt-0.5 sm:mt-1 line-clamp-1">{service.desc}</p>
+                  <p className={`text-[10px] sm:text-xs mt-1.5 sm:mt-3 leading-relaxed line-clamp-2 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
                     {service.details}
                   </p>
                 </div>
               </div>
 
               {/* Buyurtma berish tugmasi */}
-              <div className="p-6 pt-0">
+              <div className="p-3 sm:p-6 pt-0">
                 <button
                   onClick={() => setActiveModal(service)}
-                  className="w-full py-3.5 bg-teal-600 hover:bg-teal-500 text-white font-bold rounded-2xl text-sm transition-all shadow-md transform hover:-translate-y-0.5"
+                  className="w-full py-2 sm:py-3.5 bg-teal-600 hover:bg-teal-500 text-white font-bold rounded-xl sm:rounded-2xl text-xs sm:text-sm transition-all shadow-md transform hover:-translate-y-0.5"
                 >
                   Buyurtma berish
                 </button>
