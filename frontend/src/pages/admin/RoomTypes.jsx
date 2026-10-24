@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { Search, Plus, Edit2, Trash2, X, Users, Maximize2 } from 'lucide-react';
+import { api } from '../../lib/api';
 
 const RoomTypes = () => {
   const { isDarkMode } = useOutletContext();
@@ -10,12 +11,14 @@ const RoomTypes = () => {
   const [editingType, setEditingType] = useState(null);
 
   // Rasmda ko'rsatilgan Xona turlari ma'lumotlari
-  const [roomTypes, setRoomTypes] = useState([
-    { id: 1, name: 'Standard', price: '$80', capacity: 2, size: '25 m²' },
-    { id: 2, name: 'Deluxe', price: '$120', capacity: 2, size: '35 m²' },
-    { id: 3, name: 'Family', price: '$160', capacity: 4, size: '50 m²' },
-    { id: 4, name: 'Suite', price: '$250', capacity: 2, size: '70 m²' },
-  ]);
+  const [roomTypes, setRoomTypes] = useState([]);
+  const loadTypes = async () => {
+    try {
+      const data = await api('/admin/room-types');
+      setRoomTypes(data.map((t) => ({ id: t.ID, name: t.TYPE_NAME, price: `${Number(t.BASE_PRICE).toLocaleString()} UZS`, capacity: t.CAPACITY, size: t.DESCRIPTION || '', description: t.DESCRIPTION || '', image_url: t.IMAGE_URL || '', rawPrice: t.BASE_PRICE })));
+    } catch (error) { console.error('Room types loading failed:', error); }
+  };
+  useEffect(() => { loadTypes(); }, []);
 
   // Form holati
   const [form, setForm] = useState({
@@ -31,28 +34,26 @@ const RoomTypes = () => {
   );
 
   // O'chirish
-  const handleDelete = (id) => {
-    setRoomTypes(roomTypes.filter((item) => item.id !== id));
+  const handleDelete = async (id) => {
+    try { await api(`/admin/room-types/${id}`, { method: 'DELETE' }); await loadTypes(); }
+    catch (error) { window.alert(error.message); }
   };
 
   // Saqlash yoki Yangilash
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (editingType) {
-      setRoomTypes(
-        roomTypes.map((item) => (item.id === editingType.id ? { ...form, id: editingType.id } : item))
-      );
-      setEditingType(null);
-    } else {
-      setRoomTypes([...roomTypes, { ...form, id: Date.now() }]);
-    }
+    try {
+      const payload = { type_name: form.name, base_price: Number(String(form.price).replace(/[^\d.]/g, '')), capacity: Number(form.capacity), description: form.description || form.size };
+      await api(`/admin/room-types${editingType ? `/${editingType.id}` : ''}`, { method: editingType ? 'PUT' : 'POST', body: JSON.stringify(payload) });
+      await loadTypes(); setEditingType(null);
+    } catch (error) { window.alert(error.message); return; }
     setIsAddModalOpen(false);
     setForm({ name: '', price: '$100', capacity: 2, size: '30 m²' });
   };
 
   const handleEditClick = (item) => {
     setEditingType(item);
-    setForm(item);
+    setForm({ ...item, price: String(item.rawPrice), description: item.description || '' });
     setIsAddModalOpen(true);
   };
 

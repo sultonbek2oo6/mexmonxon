@@ -42,6 +42,8 @@ const AppRouter = ({ isDarkMode, toggleDarkMode }) => {
           <Route path="rooms" element={<Rooms />} />
           <Route path="room-types" element={<RoomTypes />} />
           <Route path="housekeeping" element={<Housekeeping />} />
+          <Route path="services" element={<Housekeeping />} />
+          <Route path="service-orders" element={<Housekeeping />} />
           <Route path="employees" element={<Employees />} />
           <Route path="users" element={<Users />} />
           <Route path="payments" element={<Payments />} />

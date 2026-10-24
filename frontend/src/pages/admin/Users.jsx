@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { Search, Plus, MoreVertical, Edit2, Trash2, X, Mail, ShieldCheck } from 'lucide-react';
+import { api } from '../../lib/api';
 
 const Users = () => {
   const { isDarkMode } = useOutletContext();
@@ -23,8 +24,7 @@ const Users = () => {
   // Bazadan foydalanuvchilarni olish
   const fetchUsers = async () => {
     try {
-      const res = await fetch('http://localhost:5001/api/users');
-      const data = await res.json();
+      const data = await api('/users');
       setUsers(data);
     } catch (err) {
       console.error("Foydalanuvchilarni yuklashda xatolik:", err);
@@ -57,19 +57,9 @@ const Users = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const url = editingUser 
-        ? `http://localhost:5001/api/users/${editingUser.ID}` 
-        : 'http://localhost:5001/api/users';
-      
       const method = editingUser ? 'PUT' : 'POST';
-
-      const res = await fetch(url, {
-        method: method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form)
-      });
-
-      if (res.ok) {
+      await api(`/users${editingUser ? `/${editingUser.ID}` : ''}`, { method, body: JSON.stringify(form) });
+      {
         fetchUsers();
         setIsAddModalOpen(false);
         setEditingUser(null);
@@ -100,7 +90,7 @@ const Users = () => {
   const handleDelete = async (id) => {
     if (!window.confirm("Haqiqatan ham bu foydalanuvchini o'chirmoqchimisiz?")) return;
     try {
-      await fetch(`http://localhost:5001/api/users/${id}`, { method: 'DELETE' });
+      await api(`/users/${id}`, { method: 'DELETE' });
       setUsers(users.filter((u) => u.ID !== id));
       setOpenDropdownId(null);
     } catch (err) {

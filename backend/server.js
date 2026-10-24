@@ -10,6 +10,7 @@ import roomRoutes from './routes/roomRoutes.js'; // <-- 1. Shu yerga roomRoutes 
 import serviceRoutes from './routes/serviceRoutes.js';
 import bookingRoutes from './routes/bookingRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
+import adminRoutes from './routes/adminRoutes.js';
 
 dotenv.config();
 
@@ -42,6 +43,7 @@ app.use('/api/services', serviceRoutes);
 
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/admin', adminRoutes);
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'Backend va Oracle bazasi mukammal ishlamoqda!' });
 });

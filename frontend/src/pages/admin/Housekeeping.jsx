@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 import { 
   Utensils, 
   Sparkles, 
@@ -17,6 +16,7 @@ import {
   Filter,
   Search
 } from 'lucide-react';
+import { api } from '../../lib/api';
 
 const Housekeeping = () => {
   const { isDarkMode } = useOutletContext();
@@ -26,8 +26,34 @@ const Housekeeping = () => {
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
   const [roomNumber, setRoomNumber] = useState('');
   const [note, setNote] = useState('');
+  const [cleaningTasks, setCleaningTasks] = useState([]);
+  const [roomOptions, setRoomOptions] = useState([]);
+  const [staffOptions, setStaffOptions] = useState([]);
+  const [taskForm, setTaskForm] = useState({ room_id: '', employee_id: '', status: 'pending' });
+  const loadCleaning = async () => {
+    const [tasks, rooms, staff] = await Promise.all([api('/admin/housekeeping'), api('/rooms'), api('/employees')]);
+    setCleaningTasks(tasks); setRoomOptions(rooms); setStaffOptions(staff);
+    setTaskForm((old) => ({ ...old, room_id: old.room_id || String(rooms[0]?.ID || ''), employee_id: old.employee_id || String(staff[0]?.ID || '') }));
+  };
+  useEffect(() => { loadCleaning().catch((error) => console.error('Housekeeping tasks loading failed:', error)); }, []);
+  const saveTask = async (event) => {
+    event.preventDefault();
+    try { await api('/admin/housekeeping', { method: 'POST', body: JSON.stringify(taskForm) }); await loadCleaning(); }
+    catch (error) { window.alert(error.message); }
+  };
+  const updateTask = async (task, status) => {
+    try { await api(`/admin/housekeeping/${task.ID}`, { method: 'PUT', body: JSON.stringify({ room_id: task.ROOM_ID, employee_id: task.EMPLOYEE_ID, status }) }); await loadCleaning(); }
+    catch (error) { window.alert(error.message); }
+  };
+  const deleteTask = async (id) => {
+    try { await api(`/admin/housekeeping/${id}`, { method: 'DELETE' }); await loadCleaning(); }
+    catch (error) { window.alert(error.message); }
+  };
 
   // Rasmda ko'rsatilgan Hotel Services (Mehmonxona Xizmatlari)
+  const [services, setServices] = useState([]);
+  useEffect(() => { api('/services').then((data) => setServices(data.map((s, index) => ({ id: s.ID, name: s.SERVICE_NAME, subtitle: 'Hotel service', price: `${Number(s.PRICE).toLocaleString()} UZS`, icon: [Utensils, Sparkles, Dumbbell, Car, Shirt, ConciergeBell, ShoppingBag][index % 7], color: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' })))).catch((error) => console.error('Services loading failed:', error)); }, []);
+  /*
   const [services] = useState([
     {
       id: 1,
@@ -77,7 +103,7 @@ const Housekeeping = () => {
       icon: ConciergeBell,
       color: 'bg-amber-500/10 text-amber-500 border-amber-500/20'
     }
-  ]);
+  ]); */
 
   const [serviceOrders, setServiceOrders] = useState([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
@@ -87,11 +113,7 @@ const Housekeeping = () => {
     const loadOrders = async () => {
       setOrdersLoading(true);
       try {
-        const response = await fetch(`${API_URL}/services/orders`, {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-        });
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.message || 'Buyurtmalarni olib bo‘lmadi.');
+        const data = await api('/services/orders');
         setServiceOrders(data.map((order) => ({
           id: order.ID,
           roomNo: order.ROOM_NUMBER,
@@ -117,20 +139,15 @@ const Housekeeping = () => {
     setIsOrderModalOpen(true);
   };
 
-  const handleCreateOrder = (e) => {
+  const handleCreateOrder = async (e) => {
     e.preventDefault();
     if (!roomNumber) return;
 
-    const newOrder = {
-      id: Date.now(),
-      roomNo: roomNumber,
-      serviceName: selectedOrderService.name,
-      price: selectedOrderService.price,
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      status: 'Pending'
-    };
-
-    setServiceOrders([newOrder, ...serviceOrders]);
+    try {
+      await api('/admin/service-orders', { method: 'POST', body: JSON.stringify({ room_number: roomNumber, service_id: selectedOrderService.id }) });
+      const orders = await api('/services/orders');
+      setServiceOrders(orders.map((order) => ({ id: order.ID, roomNo: order.ROOM_NUMBER, serviceName: order.SERVICE_NAME, price: `${Number(order.TOTAL_PRICE || 0).toLocaleString()} UZS`, scheduledAt: order.SCHEDULED_AT, staffNames: order.STAFF_NAMES || 'Xodim biriktirilmagan', guestName: order.GUEST_NAME, status: 'Scheduled' })));
+    } catch (error) { window.alert(error.message); return; }
     setIsOrderModalOpen(false);
     setRoomNumber('');
     setNote('');
@@ -194,7 +211,32 @@ const Housekeeping = () => {
             </span>
           )}
         </button>
+        <button
+          onClick={() => setActiveTab('cleaning')}
+          className={`flex items-center space-x-2 pb-3 font-semibold text-sm border-b-2 transition duration-200 ${activeTab === 'cleaning' ? 'border-emerald-500 text-emerald-500' : 'border-transparent text-slate-400 hover:text-slate-200'}`}
+        >
+          <Sparkles className="w-4 h-4" /><span>Room Cleaning</span>
+        </button>
       </div>
+
+      {activeTab === 'cleaning' && (
+        <div className="space-y-5">
+          <form onSubmit={saveTask} className={`p-4 rounded-2xl border grid grid-cols-1 sm:grid-cols-3 gap-3 ${isDarkMode ? 'bg-[#0f172a] border-slate-800/80' : 'bg-white border-slate-200 shadow-sm'}`}>
+            <select required value={taskForm.room_id} onChange={(e) => setTaskForm({ ...taskForm, room_id: e.target.value })} className={`px-3 py-2 rounded-xl border ${isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}>
+              {roomOptions.map((room) => <option key={room.ID} value={room.ID}>Room {room.ROOM_NUMBER}</option>)}
+            </select>
+            <select required value={taskForm.employee_id} onChange={(e) => setTaskForm({ ...taskForm, employee_id: e.target.value })} className={`px-3 py-2 rounded-xl border ${isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}>
+              {staffOptions.map((staff) => <option key={staff.ID} value={staff.ID}>{staff.FIRST_NAME} {staff.LAST_NAME}</option>)}
+            </select>
+            <button disabled={!roomOptions.length || !staffOptions.length} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-semibold rounded-xl">Assign cleaning</button>
+          </form>
+          <div className={`rounded-2xl border overflow-x-auto ${isDarkMode ? 'bg-[#0f172a] border-slate-800/80' : 'bg-white border-slate-200 shadow-sm'}`}>
+            <table className="w-full text-left text-sm"><thead><tr className="text-xs uppercase text-slate-400"><th className="p-4">Room</th><th className="p-4">Employee</th><th className="p-4">Status</th><th className="p-4">Updated</th><th className="p-4">Actions</th></tr></thead>
+              <tbody>{cleaningTasks.map((task) => <tr key={task.ID} className="border-t border-slate-700/30"><td className="p-4">{task.ROOM_NUMBER}</td><td className="p-4">{task.EMPLOYEE_NAME}</td><td className="p-4"><select value={task.STATUS} onChange={(e) => updateTask(task, e.target.value)} className={`px-2 py-1 rounded-lg ${isDarkMode ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-800'}`}><option value="pending">Pending</option><option value="in_progress">In progress</option><option value="clean">Clean</option></select></td><td className="p-4 text-slate-400">{task.UPDATED_AT ? new Date(task.UPDATED_AT).toLocaleString() : '—'}</td><td className="p-4"><button onClick={() => deleteTask(task.ID)} className="text-rose-400">Delete</button></td></tr>)}{!cleaningTasks.length && <tr><td colSpan="5" className="p-8 text-center text-slate-400">No cleaning tasks found.</td></tr>}</tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* 1-TAB: SERVICES (Mehmonxona xizmatlari kartochkalari) */}
       {activeTab === 'services' && (

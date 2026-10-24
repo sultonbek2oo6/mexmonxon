@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { Search, Plus, Trash2, X } from 'lucide-react';
+import { api } from '../../lib/api';
 
 const Employees = () => {
   const { isDarkMode } = useOutletContext();
@@ -17,8 +18,7 @@ const Employees = () => {
 
   const fetchEmployees = async () => {
     try {
-      const res = await fetch('http://localhost:5001/api/employees');
-      const data = await res.json();
+      const data = await api('/employees');
       setEmployees(data);
     } catch (err) {
       console.error("Xodimlarni yuklashda xatolik:", err);
@@ -32,12 +32,8 @@ const Employees = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch('http://localhost:5001/api/employees', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form)
-      });
-      if (res.ok) {
+      await api('/employees', { method: 'POST', body: JSON.stringify(form) });
+      {
         fetchEmployees();
         setIsAddModalOpen(false);
         setForm({ first_name: '', last_name: '', role: 'Receptionist', phone: '' });
@@ -50,7 +46,7 @@ const Employees = () => {
   const handleDelete = async (id) => {
     if (!window.confirm("Haqiqatan ham bu xodimni o'chirmoqchimisiz?")) return;
     try {
-      await fetch(`http://localhost:5001/api/employees/${id}`, { method: 'DELETE' });
+      await api(`/employees/${id}`, { method: 'DELETE' });
       setEmployees(employees.filter((emp) => emp.ID !== id));
     } catch (err) {
       console.error("O'chirishda xatolik:", err);

@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { Search, Plus, Edit2, Trash2, Eye, X, Filter } from 'lucide-react';
+import { api } from '../../lib/api';
 
 const Rooms = () => {
   const { isDarkMode } = useOutletContext();
@@ -11,14 +12,16 @@ const Rooms = () => {
   const [editingRoom, setEditingRoom] = useState(null);
 
   // Rasmda ko'rsatilgan xonalar ma'lumotlari
-  const [rooms, setRooms] = useState([
-    { id: 1, roomNo: '101', type: 'Standard', floor: 1, price: '$80', status: 'Free' },
-    { id: 2, roomNo: '102', type: 'Deluxe', floor: 1, price: '$120', status: 'Occupied' },
-    { id: 3, roomNo: '201', type: 'Family', floor: 2, price: '$160', status: 'Cleaning' },
-    { id: 4, roomNo: '202', type: 'Suite', floor: 2, price: '$250', status: 'Occupied' },
-    { id: 5, roomNo: '203', type: 'Standard', floor: 2, price: '$80', status: 'Free' },
-    { id: 6, roomNo: '301', type: 'Deluxe', floor: 3, price: '$120', status: 'Free' },
-  ]);
+  const [rooms, setRooms] = useState([]);
+  const [types, setTypes] = useState([]);
+  const loadRooms = async () => {
+    try {
+      const [data, typeRows] = await Promise.all([api('/rooms'), api('/admin/room-types')]);
+      setTypes(typeRows);
+      setRooms(data.map((r) => ({ id: r.ID, roomNo: r.ROOM_NUMBER, type: r.TYPE_NAME, typeId: r.TYPE_ID, floor: r.FLOOR, price: `${Number(r.BASE_PRICE).toLocaleString()} UZS`, status: ({ available: 'Free', free: 'Free', occupied: 'Occupied', booked: 'Occupied', cleaning: 'Cleaning' })[String(r.STATUS).toLowerCase()] || r.STATUS })));
+    } catch (error) { console.error('Rooms loading failed:', error); }
+  };
+  useEffect(() => { loadRooms(); }, []);
 
   // Form holati
   const [roomForm, setRoomForm] = useState({
@@ -51,27 +54,26 @@ const Rooms = () => {
   });
 
   // Xona o'chirish
-  const handleDelete = (id) => {
-    setRooms(rooms.filter((r) => r.id !== id));
+  const handleDelete = async (id) => {
+    try { await api(`/rooms/${id}`, { method: 'DELETE' }); await loadRooms(); }
+    catch (error) { window.alert(error.message); }
   };
 
   // Yangi xona qo'shish yoki tahrirlash
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (editingRoom) {
-      setRooms(rooms.map((r) => (r.id === editingRoom.id ? { ...roomForm, id: editingRoom.id } : r)));
-      setEditingRoom(null);
-    } else {
-      const newRoom = { ...roomForm, id: Date.now() };
-      setRooms([...rooms, newRoom]);
-    }
+    try {
+      const typeId = roomForm.typeId || types.find((t) => t.TYPE_NAME === roomForm.type)?.ID || types[0]?.ID;
+      await api(`/rooms${editingRoom ? `/${editingRoom.id}` : ''}`, { method: editingRoom ? 'PUT' : 'POST', body: JSON.stringify({ room_number: roomForm.roomNo, type_id: Number(typeId), floor: Number(roomForm.floor), status: ({ Free: 'available', Occupied: 'occupied', Cleaning: 'cleaning' })[roomForm.status] || roomForm.status }) });
+      await loadRooms(); setEditingRoom(null);
+    } catch (error) { window.alert(error.message); return; }
     setIsAddModalOpen(false);
     setRoomForm({ roomNo: '', type: 'Standard', floor: 1, price: '$80', status: 'Free' });
   };
 
   const handleEditClick = (room) => {
     setEditingRoom(room);
-    setRoomForm(room);
+    setRoomForm({ ...room, typeId: room.typeId, status: ({ available: 'Free', occupied: 'Occupied', cleaning: 'Cleaning' })[String(room.status).toLowerCase()] || room.status });
     setIsAddModalOpen(true);
   };
 
@@ -302,10 +304,7 @@ const Rooms = () => {
                       isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                     }`}
                   >
-                    <option value="Standard">Standard</option>
-                    <option value="Deluxe">Deluxe</option>
-                    <option value="Family">Family</option>
-                    <option value="Suite">Suite</option>
+                    {types.map((type) => <option key={type.ID} value={type.TYPE_NAME}>{type.TYPE_NAME}</option>)}
                   </select>
                 </div>
 

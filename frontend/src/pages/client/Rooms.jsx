@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+const dateKey = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 
 const Rooms = () => {
   const { isDarkMode } = useOutletContext();
@@ -21,6 +22,38 @@ const Rooms = () => {
   const [activeBookingRoom, setActiveBookingRoom] = useState(null);
   const [isSuccess, setIsSuccess] = useState(false);
   const [loadingPayment, setLoadingPayment] = useState(false);
+  const [bookedRanges, setBookedRanges] = useState([]);
+  const [calendarMonth, setCalendarMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
+  const [dateStep, setDateStep] = useState('checkIn');
+
+  useEffect(() => {
+    if (!activeBookingRoom) { setBookedRanges([]); return; }
+    fetch(`${API_URL}/rooms/${activeBookingRoom.id}/availability`)
+      .then((res) => res.ok ? res.json() : [])
+      .then((ranges) => setBookedRanges(ranges.map((range) => ({
+        start: range.CHECK_IN_DATE || range.check_in_date,
+        end: range.CHECK_OUT_DATE || range.check_out_date
+      }))))
+      .catch(() => setBookedRanges([]));
+  }, [activeBookingRoom]);
+
+  const datesConflict = (start, end) => bookedRanges.some((range) => start < range.end && end > range.start);
+  const todayKey = dateKey(new Date());
+  const monthOffset = (calendarMonth.getDay() + 6) % 7;
+  const calendarDays = Array.from({ length: monthOffset + new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 0).getDate() }, (_, index) =>
+    index < monthOffset ? null : new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), index - monthOffset + 1)
+  );
+  const selectCalendarDate = (date) => {
+    const value = dateKey(date);
+    if (dateStep === 'checkIn') {
+      setCheckInDate(value);
+      setCheckOutDate('');
+      setDateStep('checkOut');
+    } else {
+      setCheckOutDate(value);
+      setDateStep('checkIn');
+    }
+  };
 
   // Forma va to'lov usuli state'lari
   const [fullName, setFullName] = useState('');
@@ -386,8 +419,8 @@ const Rooms = () => {
                   <div className="w-16 h-16 bg-emerald-500/20 text-emerald-500 border border-emerald-500/40 rounded-full flex items-center justify-center mx-auto text-2xl font-bold">
                     ✓
                   </div>
-                  <h4 className="text-xl font-bold">Broningiz muvaffaqiyatli saqlandi!</h4>
-                  <p className={`text-sm ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>To'lov holati bronlarim bo'limida ko'rsatiladi.</p>
+                  <h4 className="text-xl font-bold">Bron so‘rovingiz yuborildi!</h4>
+                  <p className={`text-sm ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Administrator tasdiqlaganidan keyin broningiz tasdiqlangan bo‘lib ko‘rinadi.</p>
                 </div>
               ) : (
                 <form onSubmit={handleConfirmBooking} className="space-y-5">
@@ -429,19 +462,34 @@ const Rooms = () => {
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className={`block text-xs font-semibold uppercase mb-1 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Kirish sanasi</label>
-                      <input required type="date" min={new Date().toISOString().slice(0, 10)} value={checkInDate}
-                        onChange={(e) => { setCheckInDate(e.target.value); if (checkOutDate && e.target.value >= checkOutDate) setCheckOutDate(''); }}
-                        className={`w-full border rounded-xl p-3 text-sm ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`} />
+                  <div className={`rounded-2xl border p-3 ${isDarkMode ? 'border-slate-700 bg-slate-800/70' : 'border-slate-200 bg-slate-50'}`}>
+                    <div className="grid grid-cols-2 gap-2 mb-3">
+                      {[['checkIn', 'Kirish', checkInDate], ['checkOut', 'Chiqish', checkOutDate]].map(([step, label, value]) => (
+                        <button type="button" key={step} onClick={() => setDateStep(step)} className={`rounded-xl border p-2 text-left ${dateStep === step ? 'border-teal-500 bg-teal-500/10' : isDarkMode ? 'border-slate-700' : 'border-slate-200'}`}>
+                          <span className="block text-[10px] uppercase text-slate-400">{label} sanasi</span><span className="text-sm font-semibold">{value || 'Tanlang'}</span>
+                        </button>
+                      ))}
                     </div>
-                    <div>
-                      <label className={`block text-xs font-semibold uppercase mb-1 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Chiqish sanasi</label>
-                      <input required type="date" min={checkInDate || new Date().toISOString().slice(0, 10)} value={checkOutDate} onChange={(e) => setCheckOutDate(e.target.value)}
-                        className={`w-full border rounded-xl p-3 text-sm ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`} />
+                    <div className="flex items-center justify-between mb-2">
+                      <button type="button" aria-label="Oldingi oy" onClick={() => setCalendarMonth((month) => new Date(month.getFullYear(), month.getMonth() - 1, 1))} className="rounded-lg px-3 py-1 text-lg hover:bg-slate-700/30">‹</button>
+                      <span className="text-sm font-bold">{calendarMonth.toLocaleDateString('uz-UZ', { month: 'long', year: 'numeric' })}</span>
+                      <button type="button" aria-label="Keyingi oy" onClick={() => setCalendarMonth((month) => new Date(month.getFullYear(), month.getMonth() + 1, 1))} className="rounded-lg px-3 py-1 text-lg hover:bg-slate-700/30">›</button>
                     </div>
+                    <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-semibold text-slate-400 mb-1">{['Du', 'Se', 'Ch', 'Pa', 'Ju', 'Sh', 'Ya'].map((day) => <span key={day} className="py-1">{day}</span>)}</div>
+                    <div className="grid grid-cols-7 gap-1">{calendarDays.map((day, index) => {
+                      if (!day) return <span key={`blank-${index}`} />;
+                      const value = dateKey(day);
+                      const isCheckout = dateStep === 'checkOut';
+                      const busy = bookedRanges.some((range) => value >= range.start && value < range.end);
+                      const isTurnoverCheckout = isCheckout && bookedRanges.some((range) => value === range.start);
+                      const blocked = value < todayKey || (busy && !isTurnoverCheckout) || (isCheckout && (!checkInDate || value <= checkInDate || datesConflict(checkInDate, value)));
+                      const selected = value === checkInDate || value === checkOutDate;
+                      const inStay = checkInDate && checkOutDate && value > checkInDate && value < checkOutDate;
+                      return <button type="button" key={value} disabled={blocked} onClick={() => selectCalendarDate(day)} aria-label={`${value}${busy ? ', band' : ''}`} className={`h-9 rounded-lg text-xs font-semibold ${busy ? 'bg-rose-500 text-white' : blocked ? 'cursor-not-allowed text-slate-500/50' : selected ? 'bg-teal-600 text-white' : inStay ? 'bg-teal-500/15 text-teal-500' : isDarkMode ? 'hover:bg-slate-700 text-slate-200' : 'hover:bg-white text-slate-700'}`}>{day.getDate()}</button>;
+                    })}</div>
+                    <div className="mt-3 flex gap-4 text-[10px] text-slate-400"><span className="flex items-center gap-1"><i className="w-2.5 h-2.5 rounded-sm bg-rose-500" />Band</span><span className="flex items-center gap-1"><i className="w-2.5 h-2.5 rounded-sm bg-teal-600" />Tanlangan</span></div>
                   </div>
+                  {checkInDate && checkOutDate && datesConflict(checkInDate, checkOutDate) && <p className="text-xs font-medium text-rose-500">Bu sanalar oralig‘ida xona band. Boshqa sanani tanlang.</p>}
 
                   {/* TO'LOV USULINI TANLASH (PAYMENT METHOD) */}
                   <div>
@@ -489,8 +537,8 @@ const Rooms = () => {
 
                   <button
                     type="submit"
-                    disabled={loadingPayment}
-                    className="w-full py-4 bg-teal-600 hover:bg-teal-500 text-white font-extrabold rounded-2xl text-sm transition shadow-md disabled:opacity-50"
+                    disabled={loadingPayment || !checkInDate || !checkOutDate || datesConflict(checkInDate, checkOutDate)}
+                    className="w-full py-4 bg-teal-600 hover:bg-teal-500 text-white font-extrabold rounded-2xl text-sm transition shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {loadingPayment ? "Bron saqlanmoqda..." : 'Bronni tasdiqlash'}
                   </button>

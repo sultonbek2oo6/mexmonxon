@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { Search, Plus, Trash2, Eye, Calendar, User, CheckCircle, Clock, XCircle, X, Filter } from 'lucide-react';
+import { api } from '../../lib/api';
 
 const Bookings = () => {
   const { isDarkMode } = useOutletContext();
@@ -9,9 +10,20 @@ const Bookings = () => {
   const [selectedStatus, setSelectedStatus] = useState('All Status');
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [roomOptions, setRoomOptions] = useState([]);
 
   // Initial Bookings Data (4-rasmdagi ma'lumotlar bilan)
-  const [bookings, setBookings] = useState([
+  const [bookings, setBookings] = useState([]);
+  const loadBookings = async () => {
+    try { const data = await api('/admin/bookings'); setBookings(data.map((b) => ({ id: b.ID, guestName: b.GUEST_NAME, room: b.ROOM_NUMBER, checkIn: b.CHECK_IN_DATE, checkOut: b.CHECK_OUT_DATE, status: ({ pending: 'Pending', confirmed: 'Confirmed', 'checked-in': 'Checked-in', cancelled: 'Cancelled', completed: 'Completed' })[String(b.STATUS || '').toLowerCase()] || b.STATUS, price: `${Number(b.TOTAL_AMOUNT || 0).toLocaleString()} UZS`, guestsCount: '—' }))); }
+    catch (error) { console.error('Bookings loading failed:', error); }
+  };
+  useEffect(() => {
+    loadBookings();
+    api('/rooms').then((data) => { const numbers = data.map((room) => room.ROOM_NUMBER); setRoomOptions(numbers); if (numbers.length) setNewBooking((current) => ({ ...current, room: numbers.includes(current.room) ? current.room : numbers[0] })); }).catch((error) => console.error('Rooms loading failed:', error));
+  }, []);
+  /*
+  const [bookings] = useState([
     {
       id: 'BK001',
       guestName: 'Ali Karimov',
@@ -62,7 +74,7 @@ const Bookings = () => {
       price: '$160',
       guestsCount: '1 Adult'
     }
-  ]);
+  ]); */
 
   // Yangi bron formasi uchun state
   const [newBooking, setNewBooking] = useState({
@@ -75,17 +87,24 @@ const Bookings = () => {
   });
 
   // O'chirish funksiyasi
-  const handleDelete = (id) => {
-    setBookings(bookings.filter(item => item.id !== id));
+  const handleDelete = async (id) => {
+    try { await api(`/admin/bookings/${id}`, { method: 'DELETE' }); await loadBookings(); }
+    catch (error) { window.alert(error.message); }
+  };
+  const handleStatusChange = async (id, status) => {
+    try { await api(`/admin/bookings/${id}`, { method: 'PUT', body: JSON.stringify({ status }) }); await loadBookings(); }
+    catch (error) { window.alert(error.message); }
   };
 
   // Yangi bron qo'shish
-  const handleAddBooking = (e) => {
+  const handleAddBooking = async (e) => {
     e.preventDefault();
     if (!newBooking.guestName || !newBooking.checkIn || !newBooking.checkOut) return;
 
-    const newId = `BK00${bookings.length + 1}`;
-    setBookings([{ ...newBooking, id: newId }, ...bookings]);
+    try {
+      await api('/admin/bookings', { method: 'POST', body: JSON.stringify({ guest_name: newBooking.guestName, room_number: newBooking.room, check_in: newBooking.checkIn, check_out: newBooking.checkOut, total_amount: Number(String(newBooking.price).replace(/[^\d.]/g, '')), status: newBooking.status }) });
+      await loadBookings();
+    } catch (error) { window.alert(error.message); return; }
     setIsAddModalOpen(false);
     setNewBooking({
       guestName: '',
@@ -220,6 +239,9 @@ const Bookings = () => {
                     </td>
                     <td className="py-4 px-6 text-right">
                       <div className="flex items-center justify-end space-x-2">
+                        {String(item.status).toLowerCase() === 'pending' && <button onClick={() => handleStatusChange(item.id, 'confirmed')} className="p-1.5 rounded-lg text-emerald-500 hover:bg-emerald-500/10" title="Confirm booking"><CheckCircle className="w-4 h-4" /></button>}
+                        {String(item.status).toLowerCase() === 'pending' && <button onClick={() => handleStatusChange(item.id, 'cancelled')} className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-500/10" title="Reject booking"><XCircle className="w-4 h-4" /></button>}
+                        {['confirmed', 'checked-in'].includes(String(item.status).toLowerCase()) && <button onClick={() => handleStatusChange(item.id, 'completed')} className="px-2 py-1 rounded-lg text-xs font-semibold text-amber-600 hover:bg-amber-500/10" title="Mehmon erta chiqdi — xonani bo‘shatish">Bo‘shatish</button>}
                         <button
                           onClick={() => setSelectedBooking(item)}
                           className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-400 hover:bg-slate-800/40 transition"
@@ -277,6 +299,9 @@ const Bookings = () => {
               </div>
 
               <div className="flex items-center justify-end space-x-2 pt-1">
+                {String(item.status).toLowerCase() === 'pending' && <button onClick={() => handleStatusChange(item.id, 'confirmed')} className="flex items-center space-x-1 px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 text-xs font-semibold border border-emerald-500/20"><CheckCircle className="w-3.5 h-3.5" /><span>Tasdiqlash</span></button>}
+                {String(item.status).toLowerCase() === 'pending' && <button onClick={() => handleStatusChange(item.id, 'cancelled')} className="flex items-center space-x-1 px-3 py-1.5 rounded-lg bg-rose-500/10 text-rose-400 text-xs font-semibold border border-rose-500/20"><XCircle className="w-3.5 h-3.5" /><span>Rad etish</span></button>}
+                {['confirmed', 'checked-in'].includes(String(item.status).toLowerCase()) && <button onClick={() => handleStatusChange(item.id, 'completed')} className="px-3 py-1.5 rounded-lg bg-amber-500/10 text-amber-600 text-xs font-semibold border border-amber-500/20">Erta chiqdi · xonani bo‘shatish</button>}
                 <button
                   onClick={() => setSelectedBooking(item)}
                   className="flex items-center space-x-1 px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 text-xs font-semibold border border-emerald-500/20"
@@ -397,11 +422,7 @@ const Bookings = () => {
                       isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                     }`}
                   >
-                    <option value="101">101 (Standard)</option>
-                    <option value="102">102 (Standard)</option>
-                    <option value="202">202 (Deluxe)</option>
-                    <option value="305">305 (Family)</option>
-                    <option value="404">404 (Suite)</option>
+                    {roomOptions.map((number) => <option key={number} value={number}>{number}</option>)}
                   </select>
                 </div>
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { 
   Building2, 
@@ -13,6 +13,7 @@ import {
   Globe, 
   ShieldCheck 
 } from 'lucide-react';
+import { api } from '../../lib/api';
 
 const Settings = () => {
   const { isDarkMode } = useOutletContext();
@@ -46,6 +47,13 @@ const Settings = () => {
     newBookingNotif: true,
     cancelBookingNotif: true
   });
+  useEffect(() => {
+    api('/admin/settings').then((settings) => {
+      if (settings.general && Object.keys(settings.general).length) setGeneralForm((current) => ({ ...current, ...settings.general }));
+      if (settings.payment && Object.keys(settings.payment).length) setPaymentForm((current) => ({ ...current, ...settings.payment }));
+      if (settings.notifications && Object.keys(settings.notifications).length) setNotifForm((current) => ({ ...current, ...settings.notifications }));
+    }).catch((error) => console.error('Settings loading failed:', error));
+  }, []);
 
   // Tablar ro'yxati
   const tabs = [
@@ -55,8 +63,11 @@ const Settings = () => {
     { id: 'Notification', label: 'Notification' },
   ];
 
-  const handleSave = (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
+    try {
+      await api('/admin/settings', { method: 'PUT', body: JSON.stringify({ general: generalForm, payment: paymentForm, notifications: notifForm }) });
+    } catch (error) { window.alert(error.message); return; }
     setShowSavedToast(true);
     setTimeout(() => {
       setShowSavedToast(false);

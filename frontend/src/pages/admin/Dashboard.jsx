@@ -1,22 +1,25 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { BedDouble, CalendarCheck, DollarSign, Sparkles, TrendingUp } from 'lucide-react';
+import { api } from '../../lib/api';
 
 const Dashboard = () => {
   const { isDarkMode } = useOutletContext();
+  const [data, setData] = useState(null);
+  useEffect(() => { api('/admin/dashboard').then(setData).catch((error) => console.error('Dashboard loading failed:', error)); }, []);
 
   const stats = [
     {
       title: 'Total Rooms',
-      value: '120',
-      subtext: '100 Occupied • 20 Available',
+      value: data ? Number(data.rooms?.TOTAL || 0).toLocaleString() : '—',
+      subtext: `${Math.max(0, Number(data?.rooms?.TOTAL || 0) - Number(data?.rooms?.AVAILABLE || 0))} Occupied • ${Number(data?.rooms?.AVAILABLE || 0)} Available`,
       icon: BedDouble,
       iconBg: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
-      progress: 83
+      progress: data?.rooms?.TOTAL ? Math.round((Number(data.rooms.AVAILABLE || 0) / Number(data.rooms.TOTAL)) * 100) : 0
     },
     {
       title: 'Total Bookings',
-      value: '48',
+      value: data ? Number(data.bookings || 0).toLocaleString() : '—',
       change: '+10%',
       changeText: 'vs. last month',
       icon: CalendarCheck,
@@ -24,7 +27,7 @@ const Dashboard = () => {
     },
     {
       title: 'Total Revenue',
-      value: '$8,640',
+      value: data ? `${Number(data.revenue || 0).toLocaleString()} UZS` : '—',
       change: '+10%',
       changeText: 'vs. last month',
       icon: DollarSign,
@@ -32,14 +35,21 @@ const Dashboard = () => {
     },
     {
       title: 'Housekeeping',
-      value: '15',
-      subtext: '0 Dirty',
-      subtext2: '15 Clean',
+      value: data ? Number(data.housekeeping?.TOTAL || 0).toLocaleString() : '—',
+      subtext: `${Number(data?.housekeeping?.DIRTY || 0)} Dirty`,
+      subtext2: `${Math.max(0, Number(data?.housekeeping?.TOTAL || 0) - Number(data?.housekeeping?.DIRTY || 0))} Clean`,
       icon: Sparkles,
       iconBg: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
     }
   ];
 
+  const recentBookings = data ? (data.recentBookings || []).map((b) => ({
+    id: b.ID, guest: b.GUEST_NAME, avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=150',
+    room: b.ROOM_NUMBER, checkIn: b.CHECK_IN_DATE ? new Date(b.CHECK_IN_DATE).toLocaleDateString() : '—',
+    checkOut: b.CHECK_OUT_DATE ? new Date(b.CHECK_OUT_DATE).toLocaleDateString() : '—', status: b.STATUS,
+    statusBg: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30'
+  })) : [];
+  /*
   const recentBookings = [
     {
       id: 1,
@@ -71,7 +81,7 @@ const Dashboard = () => {
       status: 'Pending',
       statusBg: 'bg-amber-500/10 text-amber-500 border-amber-500/30'
     }
-  ];
+  ]; */
 
   return (
     <div className="space-y-8">
@@ -221,7 +231,7 @@ const Dashboard = () => {
               />
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-              <span className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>120</span>
+              <span className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{data ? Number(data.rooms?.TOTAL || 0) : '—'}</span>
               <span className="text-[11px] text-slate-400">Total Rooms</span>
             </div>
           </div>

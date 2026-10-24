@@ -1,7 +1,11 @@
 import oracledb from 'oracledb';
 import { executeQuery } from '../config/db.js';
 
-const isValidDate = (value) => /^\d{4}-\d{2}-\d{2}$/.test(value || '') && !Number.isNaN(Date.parse(`${value}T00:00:00Z`));
+const isValidDate = (value) => {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value || '')) return false;
+  const date = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
+};
 
 export const createBooking = async (req, res) => {
   const userId = req.user.id;
@@ -29,7 +33,8 @@ export const createBooking = async (req, res) => {
     const room = await connection.execute(
       `SELECT rt.BASE_PRICE FROM MEXMONXONALAR_TIZIMI.ROOMS r
        JOIN MEXMONXONALAR_TIZIMI.ROOM_TYPES rt ON rt.ID = r.TYPE_ID
-       WHERE r.ID = :roomId AND LOWER(TRIM(r.STATUS)) = 'available'`,
+       WHERE r.ID = :roomId AND LOWER(TRIM(r.STATUS)) NOT IN ('cleaning', 'maintenance', 'ta’mirda')
+       FOR UPDATE OF r.ID`,
       { roomId }, { outFormat: oracledb.OUT_FORMAT_OBJECT }
     );
     if (!room.rows.length) {
@@ -56,8 +61,8 @@ export const createBooking = async (req, res) => {
     failedStep = 'BOOKINGS jadvaliga bron yozish';
     const inserted = await connection.execute(
       `INSERT INTO MEXMONXONALAR_TIZIMI.BOOKINGS
-         (USER_ID, ROOM_ID, CHECK_IN_DATE, CHECK_OUT_DATE, TOTAL_AMOUNT)
-       VALUES (:userId, :roomId, TO_DATE(:checkInDate, 'YYYY-MM-DD'), TO_DATE(:checkOutDate, 'YYYY-MM-DD'), :totalAmount)
+         (USER_ID, ROOM_ID, CHECK_IN_DATE, CHECK_OUT_DATE, TOTAL_AMOUNT, STATUS)
+       VALUES (:userId, :roomId, TO_DATE(:checkInDate, 'YYYY-MM-DD'), TO_DATE(:checkOutDate, 'YYYY-MM-DD'), :totalAmount, 'pending')
        RETURNING ID INTO :bookingId`,
       {
         userId, roomId, checkInDate, checkOutDate, totalAmount,
@@ -73,7 +78,7 @@ export const createBooking = async (req, res) => {
     );
     failedStep = 'Bron tranzaksiyasini tasdiqlash';
     await connection.commit();
-    return res.status(201).json({ bookingId, totalAmount, message: 'Bron muvaffaqiyatli saqlandi.' });
+    return res.status(201).json({ bookingId, totalAmount, status: 'pending', message: 'Bron so‘rovi yuborildi. Administrator tasdiqlashini kuting.' });
   } catch (error) {
     if (connection) await connection.rollback().catch(() => {});
     console.error(`Bron yaratishda xatolik (${failedStep}):`, error);

@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { Search, Plus, Eye, Trash2, X, DollarSign, CreditCard, Calendar, User, FileText } from 'lucide-react';
+import { api } from '../../lib/api';
 
 const Payments = () => {
   const { isDarkMode } = useOutletContext();
@@ -11,12 +12,19 @@ const Payments = () => {
   const [viewingPayment, setViewingPayment] = useState(null);
 
   // Rasmda ko'rsatilgan to'lovlar ma'lumotlari
-  const [payments, setPayments] = useState([
+  const [payments, setPayments] = useState([]);
+  const loadPayments = async () => {
+    try { const data = await api('/payments'); setPayments(data.map((p) => ({ id: p.ID, bookingId: p.BOOKING_ID, guest: p.GUEST_NAME || '—', amount: `${Number(p.AMOUNT || 0).toLocaleString()} UZS`, method: ({ card: 'Visa', click: 'Click', payme: 'Payme', cash: 'Cash' })[String(p.PAYMENT_METHOD || '').toLowerCase()] || p.PAYMENT_METHOD, status: ({ paid: 'Paid', pending: 'Pending', failed: 'Failed', cancelled: 'Cancelled' })[String(p.PAYMENT_STATUS || '').toLowerCase()] || p.PAYMENT_STATUS, date: p.PAID_AT ? new Date(p.PAID_AT).toLocaleDateString() : '—' }))); }
+    catch (error) { console.error('Payments loading failed:', error); }
+  };
+  useEffect(() => { loadPayments(); }, []);
+  /*
+  const [payments] = useState([
     { id: 'PAY001', guest: 'Ali Karimov', amount: '$120', method: 'Visa', status: 'Paid', date: 'Apr 26, 2025' },
     { id: 'PAY002', guest: 'John Smith', amount: '$250', method: 'Mastercard', status: 'Paid', date: 'Apr 26, 2025' },
     { id: 'PAY003', guest: 'Aziza Aliyeva', amount: '$180', method: 'UzCard', status: 'Pending', date: 'Apr 27, 2025' },
     { id: 'PAY004', guest: 'Emily Davis', amount: '$320', method: 'Cash', status: 'Paid', date: 'Apr 27, 2025' },
-  ]);
+  ]); */
 
   // Yangi to'lov formasi
   const [form, setForm] = useState({
@@ -54,15 +62,16 @@ const Payments = () => {
   });
 
   // To'lovni o'chirish
-  const handleDelete = (id) => {
-    setPayments(payments.filter((pay) => pay.id !== id));
+  const handleDelete = async (id) => {
+    try { await api(`/admin/payments/${id}`, { method: 'DELETE' }); await loadPayments(); }
+    catch (error) { window.alert(error.message); }
   };
 
   // Yangi to'lov saqlash
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const formattedAmount = form.amount.startsWith('$') ? form.amount : `$${form.amount}`;
-    setPayments([{ ...form, amount: formattedAmount }, ...payments]);
+    try { await api('/admin/payments', { method: 'POST', body: JSON.stringify({ guest_name: form.guest, amount: Number(String(form.amount).replace(/[^\d.]/g, '')), method: form.method, status: form.status.toLowerCase() }) }); await loadPayments(); }
+    catch (error) { window.alert(error.message); return; }
     setIsAddModalOpen(false);
     setForm({
       id: `PAY${Math.floor(100 + Math.random() * 900)}`,

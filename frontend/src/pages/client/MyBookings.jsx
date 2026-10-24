@@ -40,9 +40,9 @@ const MyBookings = () => {
 
   // Backend'dan bronlarni bazadan tortib kelish
   useEffect(() => {
-    const fetchBookings = async () => {
+    const fetchBookings = async (showLoading = false) => {
       try {
-        setLoading(true);
+        if (showLoading) setLoading(true);
         // Token yoki user_id bo'yicha so'rov yuborish (hozircha umumiy yoki test user_id=1 bilan)
         const response = await axios.get(`${API_URL}/bookings`, {
           headers: {
@@ -100,15 +100,18 @@ const MyBookings = () => {
         });
 
         setBookings(formattedData);
+        setError(null);
       } catch (err) {
         console.error("Bronlarni yuklashda xatolik:", err);
         setError("Ma'lumotlarni yuklab bo'lmadi.");
       } finally {
-        setLoading(false);
+        if (showLoading) setLoading(false);
       }
     };
 
-    fetchBookings();
+    fetchBookings(true);
+    const refreshTimer = window.setInterval(() => fetchBookings(), 10000);
+    return () => window.clearInterval(refreshTimer);
   }, []);
 
   // Status uchun maxsus stil tayyorlash

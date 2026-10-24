@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -22,15 +22,34 @@ import {
   Search,
   Bell
 } from 'lucide-react';
+import { Check, X as CloseIcon } from 'lucide-react';
+import { api } from '../lib/api';
 
 const AdminLayout = () => {
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [bookingNotifications, setBookingNotifications] = useState([]);
   const navigate = useNavigate();
   const location = useLocation(); // Har bir router sahifasi o'zgarganda animatsiyani tetiklash uchun
 
   const toggleDarkMode = () => setIsDarkMode((prev) => !prev);
   const toggleSidebar = () => setIsSidebarOpen((prev) => !prev);
+  const loadNotifications = useCallback(async () => {
+    try { setBookingNotifications(await api('/admin/notifications/bookings')); }
+    catch (error) { console.error('Booking notifications loading failed:', error); }
+  }, []);
+  useEffect(() => {
+    loadNotifications();
+    const timer = window.setInterval(loadNotifications, 10000);
+    return () => window.clearInterval(timer);
+  }, [loadNotifications]);
+  const reviewBooking = async (bookingId, status) => {
+    try {
+      await api(`/admin/bookings/${bookingId}`, { method: 'PUT', body: JSON.stringify({ status }) });
+      await loadNotifications();
+    } catch (error) { window.alert(error.message); }
+  };
 
   const handleLogout = () => {
     localStorage.clear();
@@ -157,12 +176,40 @@ const AdminLayout = () => {
             </button>
 
             {/* Notification Bell */}
-            <button className={`p-2.5 rounded-xl border relative transition ${
-              isDarkMode ? 'bg-slate-800/80 border-slate-700 text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-600'
-            }`}>
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            </button>
+            <div className="relative">
+              <button
+                onClick={() => setIsNotificationsOpen((open) => !open)}
+                aria-label={`Booking notifications: ${bookingNotifications.length} pending`}
+                aria-expanded={isNotificationsOpen}
+                className={`p-2.5 rounded-xl border relative transition ${isDarkMode ? 'bg-slate-800/80 border-slate-700 text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-600'}`}
+              >
+                <Bell className="w-5 h-5" />
+                {bookingNotifications.length > 0 && <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center">{bookingNotifications.length}</span>}
+              </button>
+              {isNotificationsOpen && (
+                <div className={`absolute right-0 mt-3 w-[min(22rem,calc(100vw-2rem))] rounded-2xl border shadow-2xl overflow-hidden z-50 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-100' : 'bg-white border-slate-200 text-slate-800'}`}>
+                  <div className="px-4 py-3 border-b border-slate-700/30 flex items-center justify-between">
+                    <span className="font-bold text-sm">Yangi bronlar</span>
+                    <button onClick={() => { setIsNotificationsOpen(false); navigate('/admin/bookings'); }} className="text-xs text-emerald-500 hover:underline">Barchasini ko‘rish</button>
+                  </div>
+                  <div className="max-h-96 overflow-y-auto divide-y divide-slate-700/30">
+                    {bookingNotifications.length ? bookingNotifications.map((booking) => (
+                      <div key={booking.ID} className="p-4 space-y-2">
+                        <button onClick={() => { setIsNotificationsOpen(false); navigate('/admin/bookings'); }} className="text-left w-full">
+                          <p className="text-sm font-semibold">{booking.GUEST_NAME}</p>
+                          <p className="text-xs text-slate-400">Xona {booking.ROOM_NUMBER} · {booking.CHECK_IN_DATE} — {booking.CHECK_OUT_DATE}</p>
+                          <p className="text-xs text-emerald-500 mt-1">{Number(booking.TOTAL_AMOUNT || 0).toLocaleString()} UZS</p>
+                        </button>
+                        <div className="flex gap-2">
+                          <button onClick={() => reviewBooking(booking.ID, 'confirmed')} className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold"><Check className="w-3.5 h-3.5" />Tasdiqlash</button>
+                          <button onClick={() => reviewBooking(booking.ID, 'cancelled')} className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 text-xs font-semibold"><CloseIcon className="w-3.5 h-3.5" />Rad etish</button>
+                        </div>
+                      </div>
+                    )) : <p className="p-5 text-sm text-slate-400 text-center">Tasdiqlashni kutayotgan bron yo‘q.</p>}
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* Admin Profile */}
             <div className="flex items-center space-x-3 pl-2 border-l border-slate-700/50">

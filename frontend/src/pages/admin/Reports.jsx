@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { 
   Calendar, 
@@ -11,22 +11,26 @@ import {
   PieChart as PieChartIcon, 
   BarChart3 
 } from 'lucide-react';
+import { api } from '../../lib/api';
 
 const Reports = () => {
   const { isDarkMode } = useOutletContext();
 
   const [dateRange, setDateRange] = useState('Apr 20, 2025 - Apr 26, 2025');
   const [selectedReportType, setSelectedReportType] = useState('Weekly');
+  const [report, setReport] = useState(null);
+  useEffect(() => { api('/admin/reports').then(setReport).catch((error) => console.error('Reports loading failed:', error)); }, []);
 
   // Rasmda ko'rsatilgan statistik ko'rsatkichlar
   const stats = [
-    { title: 'Total Bookings', value: '48', change: '+12%', icon: Users, isPositive: true },
-    { title: 'Revenue', value: '$8,640', change: '+18.5%', icon: DollarSign, isPositive: true },
-    { title: 'Occupancy Rate', value: '83%', change: '+5%', icon: TrendingUp, isPositive: true },
+    { title: 'Total Bookings', value: report ? (report.bookings || []).reduce((sum, row) => sum + Number(row.BOOKINGS || 0), 0).toLocaleString() : '—', change: '', icon: Users, isPositive: true },
+    { title: 'Revenue', value: report ? `${Number(report.payments?.REVENUE || 0).toLocaleString()} UZS` : '—', change: '', icon: DollarSign, isPositive: true },
+    { title: 'Occupancy Rate', value: report?.rooms?.TOTAL ? `${Math.round(Number(report.rooms.OCCUPIED || 0) / Number(report.rooms.TOTAL) * 100)}%` : '—', change: '', icon: TrendingUp, isPositive: true },
   ];
 
   // Bar Chart (Bookings Overview) ma'lumotlari
-  const bookingsOverview = [
+  const bookingsOverview = report?.bookings?.length ? report.bookings.slice(0, 7).reverse().map((row) => ({ day: row.MONTH, value: Number(row.BOOKINGS || 0), height: `${Math.max(5, Math.min(100, Number(row.BOOKINGS || 0) * 4))}%` })) : [];
+  /* const bookingsOverview = [
     { day: 'Mon', value: 35, height: '35%' },
     { day: 'Tue', value: 45, height: '45%' },
     { day: 'Wed', value: 60, height: '60%' },
@@ -34,15 +38,17 @@ const Reports = () => {
     { day: 'Fri', value: 40, height: '40%' },
     { day: 'Sat', value: 85, height: '85%' },
     { day: 'Sun', value: 75, height: '75%' },
-  ];
+  ]; */
 
   // Room Type Distribution ma'lumotlari
-  const roomTypes = [
+  const palette = ['bg-emerald-500 text-emerald-500', 'bg-teal-500 text-teal-500', 'bg-amber-500 text-amber-500', 'bg-cyan-500 text-cyan-500'];
+  const roomTypes = (report?.roomTypes || []).map((item, index, all) => ({ type: item.TYPE_NAME, percentage: all.reduce((sum, row) => sum + Number(row.ROOM_COUNT || 0), 0) ? Math.round(Number(item.ROOM_COUNT || 0) / all.reduce((sum, row) => sum + Number(row.ROOM_COUNT || 0), 0) * 100) : 0, color: palette[index % palette.length].split(' ')[0], textColor: palette[index % palette.length].split(' ')[1] }));
+  /* const roomTypes = [
     { type: 'Standard', percentage: 40, color: 'bg-emerald-500', textColor: 'text-emerald-500' },
     { type: 'Deluxe', percentage: 25, color: 'bg-teal-500', textColor: 'text-teal-500' },
     { type: 'Family', percentage: 15, color: 'bg-amber-500', textColor: 'text-amber-500' },
     { type: 'Suite', percentage: 20, color: 'bg-cyan-500', textColor: 'text-cyan-500' },
-  ];
+  ]; */
 
   return (
     <div className="space-y-6">
@@ -58,7 +64,7 @@ const Reports = () => {
 
         {/* Export Button */}
         <button 
-          onClick={() => alert('Report downloaded successfully!')}
+          onClick={() => { const blob = new Blob([JSON.stringify(report || {}, null, 2)], { type: 'application/json' }); const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = 'hotel-report.json'; link.click(); URL.revokeObjectURL(link.href); }}
           className="flex items-center justify-center space-x-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl shadow-lg shadow-emerald-600/25 transition duration-200"
         >
           <Download className="w-4 h-4" />
