@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useOutletContext } from 'react-router-dom';
 
 const Home = () => {
@@ -16,49 +16,34 @@ const Home = () => {
   const [note, setNote] = useState('');
   const [isSuccess, setIsSuccess] = useState(false);
 
-  // Xonalar ro'yxati
-  const rooms = [
-    {
-      id: 1,
-      title: 'Standart xona',
-      capacity: '2 mehmon',
-      size: '25 m²',
-      price: '\$80',
-      badge: 'Shinam',
-      rating: 4.8,
-      image: 'https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&q=80&w=600'
-    },
-    {
-      id: 2,
-      title: 'Deluxe xona',
-      capacity: '2 mehmon',
-      size: '35 m²',
-      price: '\$120',
-      badge: 'Mashhur',
-      rating: 4.9,
-      image: 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&q=80&w=600'
-    },
-    {
-      id: 3,
-      title: 'Family xona',
-      capacity: '4 mehmon',
-      size: '50 m²',
-      price: '\$160',
-      badge: 'Oila uchun',
-      rating: 4.7,
-      image: 'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&q=80&w=600'
-    },
-    {
-      id: 4,
-      title: 'Suite xona',
-      capacity: '4 mehmon',
-      size: '70 m²',
-      price: '\$250',
-      badge: 'Top Tanlov',
-      rating: 5.0,
-      image: 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?auto=format&fit=crop&q=80&w=600'
-    }
-  ];
+  // Bazadan keladigan xonalar ro'yxati va yuklanish holati
+  const [rooms, setRooms] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Backenddan xonalarni bazadan tortib kelish
+  useEffect(() => {
+    fetch('http://localhost:5001/api/rooms')
+      .then((res) => res.json())
+      .then((data) => {
+        const formattedRooms = (data.rows || data).map((room) => ({
+          id: room.ID || room.id,
+          title: room.TYPE_NAME || room.type_name,
+          capacity: `${room.CAPACITY || room.capacity || 2} mehmon`,
+          size: room.DESCRIPTION || room.description || '30 m²',
+          price: `${Number(room.BASE_PRICE || room.base_price || 0).toLocaleString()} UZS`,
+          badge: room.STATUS === 'available' ? 'Mavjud' : 'Band',
+          rating: 4.8,
+          // ROOM_TYPES jadvalidagi IMAGE_URL dan olinmoqda
+          image: room.IMAGE_URL || room.image_url || 'https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&q=80&w=600'
+        }));
+        setRooms(formattedRooms.slice(0, 4)); // Bosh sahifada eng ko'pi bilan 4 ta xonani ko'rsatish
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Bosh sahifa xonalarini yuklashda xatolik:", err);
+        setLoading(false);
+      });
+  }, []);
 
   // Xizmatlar ro'yxati
   const services = [
@@ -117,7 +102,6 @@ const Home = () => {
   // Qidiruv tugmasi bosilganda ishlaydigan funksiya
   const handleSearchClick = (e) => {
     e.preventDefault();
-    // Sanalar va mehmonlar ma'lumotini URL orqali yoki state/localStorage orqali xonalar sahifasiga uzatish
     navigate('/client/rooms', { state: { checkIn, checkOut, guests } });
   };
 
@@ -167,7 +151,7 @@ const Home = () => {
           </p>
         </div>
 
-        {/* SEARCH / BOOKING PANEL (Ishlaydigan formada qilindi) */}
+        {/* SEARCH / BOOKING PANEL */}
         <form onSubmit={handleSearchClick} className="relative z-10 max-w-7xl mx-auto w-full mt-8 sm:mt-12">
           <div className={`p-4 md:p-6 rounded-3xl backdrop-blur-xl border shadow-2xl transition-all duration-500 grid grid-cols-1 md:grid-cols-4 gap-4 items-center ${
             isDarkMode 
@@ -175,7 +159,6 @@ const Home = () => {
               : 'bg-white/95 border-white/60 text-slate-800'
           }`}>
             
-            {/* Kirish sanasi */}
             <div className={`flex items-center space-x-3 border-r-0 md:border-r pb-2 md:pb-0 border-b md:border-b-0 pr-0 md:pr-4 ${isDarkMode ? 'border-slate-800' : 'border-slate-200'}`}>
               <div className="text-teal-500 p-2 rounded-xl bg-teal-500/10 shrink-0">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -183,7 +166,7 @@ const Home = () => {
                 </svg>
               </div>
               <div className="flex flex-col w-full">
-                <span className={`text-[10px] font-bold uppercase tracking-wider ${isDarkMode ? 'text-slate-400' : 'text-slate-400'}`}>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                   Kirish sanasi
                 </span>
                 <input 
@@ -195,7 +178,6 @@ const Home = () => {
               </div>
             </div>
 
-            {/* Chiqish sanasi */}
             <div className={`flex items-center space-x-3 border-r-0 md:border-r pb-2 md:pb-0 border-b md:border-b-0 pr-0 md:pr-4 ${isDarkMode ? 'border-slate-800' : 'border-slate-200'}`}>
               <div className="text-teal-500 p-2 rounded-xl bg-teal-500/10 shrink-0">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -203,7 +185,7 @@ const Home = () => {
                 </svg>
               </div>
               <div className="flex flex-col w-full">
-                <span className={`text-[10px] font-bold uppercase tracking-wider ${isDarkMode ? 'text-slate-400' : 'text-slate-400'}`}>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                   Chiqish sanasi
                 </span>
                 <input 
@@ -215,7 +197,6 @@ const Home = () => {
               </div>
             </div>
 
-            {/* Mehmonlar */}
             <div className={`flex items-center space-x-3 border-r-0 md:border-r pb-2 md:pb-0 border-b md:border-b-0 pr-0 md:pr-4 ${isDarkMode ? 'border-slate-800' : 'border-slate-200'}`}>
               <div className="text-teal-500 p-2 rounded-xl bg-teal-500/10 shrink-0">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -223,7 +204,7 @@ const Home = () => {
                 </svg>
               </div>
               <div className="flex flex-col w-full">
-                <span className={`text-[10px] font-bold uppercase tracking-wider ${isDarkMode ? 'text-slate-400' : 'text-slate-400'}`}>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                   Mehmonlar
                 </span>
                 <input 
@@ -235,7 +216,6 @@ const Home = () => {
               </div>
             </div>
 
-            {/* Qidirish tugmasi */}
             <button type="submit" className="w-full py-3.5 sm:py-4 bg-teal-600 hover:bg-teal-500 text-white font-extrabold rounded-2xl shadow-lg transition-all duration-200 transform hover:-translate-y-0.5 active:scale-[0.98] flex items-center justify-center gap-2">
               <span>Qidirish</span>
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -247,7 +227,7 @@ const Home = () => {
         </form>
       </section>
 
-      {/* ROOMS SHOWCASE SECTION */}
+      {/* ROOMS SHOWCASE SECTION (BAZADAN KELUVCHI QISM) */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 py-10 sm:py-16 relative z-10">
         <div className="flex items-end justify-between mb-6 sm:mb-10">
           <div>
@@ -255,7 +235,7 @@ const Home = () => {
               Bizning xonalarimiz
             </h2>
             <p className={`text-xs sm:text-sm mt-1 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-              Sizning qulayligingiz uchun eng shinam va zamonaviy tanlovlar
+              Bazadan real vaqt rejimida yuklangan eng shinam va zamonaviy tanlovlar
             </p>
           </div>
           <Link 
@@ -267,62 +247,66 @@ const Home = () => {
           </Link>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-          {rooms.map((room) => (
-            <div 
-              key={room.id} 
-              className={`group rounded-2xl sm:rounded-3xl overflow-hidden border transition-all duration-500 flex flex-col justify-between hover:shadow-2xl ${
-                isDarkMode 
-                  ? 'bg-slate-800/40 backdrop-blur-md border-slate-700/60 hover:border-teal-500/40' 
-                  : 'bg-white border-slate-200/80 hover:border-teal-500/40 hover:shadow-slate-300/50'
-              }`}
-            >
-              <div>
-                <div className="h-28 sm:h-36 md:h-52 overflow-hidden relative">
-                  <img 
-                    src={room.image} 
-                    alt={room.title} 
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/10"></div>
-                  
-                  <span className="absolute top-2 left-2 sm:top-3 sm:left-3 bg-slate-900/80 backdrop-blur-md border border-slate-700 text-teal-300 text-[9px] sm:text-[10px] font-bold px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full">
-                    {room.badge}
-                  </span>
+        {loading ? (
+          <div className="text-center py-16 text-teal-500 font-bold animate-pulse text-sm">Xonalar yuklanmoqda...</div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+            {rooms.map((room) => (
+              <div 
+                key={room.id} 
+                className={`group rounded-2xl sm:rounded-3xl overflow-hidden border transition-all duration-500 flex flex-col justify-between hover:shadow-2xl ${
+                  isDarkMode 
+                    ? 'bg-slate-800/40 backdrop-blur-md border-slate-700/60 hover:border-teal-500/40' 
+                    : 'bg-white border-slate-200/80 hover:border-teal-500/40 hover:shadow-slate-300/50'
+                }`}
+              >
+                <div>
+                  <div className="h-28 sm:h-36 md:h-52 overflow-hidden relative">
+                    <img 
+                      src={room.image} 
+                      alt={room.title} 
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/10"></div>
+                    
+                    <span className="absolute top-2 left-2 sm:top-3 sm:left-3 bg-slate-900/80 backdrop-blur-md border border-slate-700 text-teal-300 text-[9px] sm:text-[10px] font-bold px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full">
+                      {room.badge}
+                    </span>
 
-                  <div className="absolute bottom-2 left-2 sm:bottom-3 sm:left-3 flex items-center gap-1 bg-black/50 backdrop-blur-md px-1.5 sm:px-2 py-0.5 rounded-lg text-[10px] sm:text-xs text-white">
-                    <span className="text-amber-400">★</span>
-                    <span className="font-bold">{room.rating}</span>
+                    <div className="absolute bottom-2 left-2 sm:bottom-3 sm:left-3 flex items-center gap-1 bg-black/50 backdrop-blur-md px-1.5 sm:px-2 py-0.5 rounded-lg text-[10px] sm:text-xs text-white">
+                      <span className="text-amber-400">★</span>
+                      <span className="font-bold">{room.rating}</span>
+                    </div>
+                  </div>
+
+                  <div className="p-3 sm:p-5">
+                    <h3 className={`text-sm sm:text-lg font-bold transition-colors line-clamp-1 ${
+                      isDarkMode ? 'text-white group-hover:text-teal-300' : 'text-slate-900 group-hover:text-teal-600'
+                    }`}>
+                      {room.title}
+                    </h3>
+                    <p className={`text-[10px] sm:text-xs mt-0.5 sm:mt-1 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                      {room.capacity} &bull; {room.size}
+                    </p>
+                    
+                    <div className="mt-2 sm:mt-4 flex items-baseline gap-1">
+                      <span className="text-sm sm:text-xl font-black text-teal-500">{room.price}</span>
+                      <span className={`text-[10px] sm:text-xs ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>/ kecha</span>
+                    </div>
                   </div>
                 </div>
 
-                <div className="p-3 sm:p-5">
-                  <h3 className={`text-sm sm:text-lg font-bold transition-colors line-clamp-1 ${
-                    isDarkMode ? 'text-white group-hover:text-teal-300' : 'text-slate-900 group-hover:text-teal-600'
-                  }`}>
-                    {room.title}
-                  </h3>
-                  <p className={`text-[10px] sm:text-xs mt-0.5 sm:mt-1 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                    {room.capacity} &bull; {room.size}
-                  </p>
-                  
-                  <div className="mt-2 sm:mt-4 flex items-baseline gap-1">
-                    <span className="text-base sm:text-2xl font-black text-teal-500">{room.price}</span>
-                    <span className={`text-[10px] sm:text-xs ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>/ kecha</span>
-                  </div>
+                <div className="p-3 sm:p-5 pt-0">
+                  <Link to="/client/rooms">
+                    <button className="w-full py-2 sm:py-3 bg-teal-600 hover:bg-teal-500 text-white font-bold rounded-xl sm:rounded-2xl text-xs transition-all shadow-md transform hover:-translate-y-0.5">
+                      Bron qilish
+                    </button>
+                  </Link>
                 </div>
               </div>
-
-              <div className="p-3 sm:p-5 pt-0">
-                <Link to="/client/rooms">
-                  <button className="w-full py-2 sm:py-3 bg-teal-600 hover:bg-teal-500 text-white font-bold rounded-xl sm:rounded-2xl text-xs transition-all shadow-md transform hover:-translate-y-0.5">
-                    Bron qilish
-                  </button>
-                </Link>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* SERVICES BOTTOM BAR */}

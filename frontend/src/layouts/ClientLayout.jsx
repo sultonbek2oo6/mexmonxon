@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
 const ClientLayout = ({ isDarkMode, toggleDarkMode }) => {
   const navigate = useNavigate();
@@ -9,6 +11,10 @@ const ClientLayout = ({ isDarkMode, toggleDarkMode }) => {
   // Dropdown va Profil Modal holatlarini saqlash
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+
+  // Saqlash jarayoni va xabarlar holati
+  const [isSaving, setIsSaving] = useState(false);
+  const [profileMessage, setProfileMessage] = useState({ type: '', text: '' });
 
   // Profil ma'lumotlari holati
   const [userInfo, setUserInfo] = useState({
@@ -26,19 +32,134 @@ const ClientLayout = ({ isDarkMode, toggleDarkMode }) => {
     navigate('/login');
   };
 
-  const handleSaveProfile = (e) => {
+  // Backenddan kelgan user ma'lumotlarini state va localStorage ga yozish
+  const applyUserToState = (user) => {
+    const next = {
+      fullName: user.full_name || '',
+      email: user.email || '',
+      phone: user.phone || '',
+      passport: user.passport || '',
+      birthDate: user.birth_date || ''
+    };
+    localStorage.setItem('fullName', next.fullName);
+    localStorage.setItem('email', next.email);
+    localStorage.setItem('phone', next.phone);
+    localStorage.setItem('passport', next.passport);
+    localStorage.setItem('birthDate', next.birthDate);
+    setUserInfo((prev) => ({ ...prev, ...next, password: '', confirmPassword: '' }));
+  };
+
+  // Sahifa ochilganda profilni backenddan yuklash
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    const controller = new AbortController();
+
+    const loadProfile = async () => {
+      try {
+        const response = await fetch(`${API_URL}/profile`, {
+          headers: { Authorization: `Bearer ${token}` },
+          signal: controller.signal
+        });
+        if (response.status === 401) {
+          localStorage.clear();
+          navigate('/login');
+          return;
+        }
+        const data = await response.json();
+        if (response.ok && data.user) {
+          applyUserToState(data.user);
+        }
+      } catch (error) {
+        if (error.name !== 'AbortError') {
+          console.error('Profilni yuklashda xatolik:', error);
+        }
+      }
+    };
+
+    loadProfile();
+    return () => controller.abort();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const openProfileModal = () => {
+    setProfileMessage({ type: '', text: '' });
+    setIsProfileDropdownOpen(false);
+    setIsProfileModalOpen(true);
+  };
+
+  const closeProfileModal = () => {
+    setIsProfileModalOpen(false);
+    setProfileMessage({ type: '', text: '' });
+    setUserInfo((prev) => ({ ...prev, password: '', confirmPassword: '' }));
+  };
+
+  const handleSaveProfile = async (e) => {
     e.preventDefault();
+    setProfileMessage({ type: '', text: '' });
+
     if (userInfo.password && userInfo.password !== userInfo.confirmPassword) {
-      alert("Parollar mos kelmadi!");
+      setProfileMessage({ type: 'error', text: 'Parollar mos kelmadi!' });
       return;
     }
-    localStorage.setItem('fullName', userInfo.fullName);
-    localStorage.setItem('email', userInfo.email);
-    localStorage.setItem('phone', userInfo.phone);
-    localStorage.setItem('passport', userInfo.passport);
-    localStorage.setItem('birthDate', userInfo.birthDate);
-    alert("Profil ma'lumotlari muvaffaqiyatli saqlandi!");
-    setIsProfileModalOpen(false);
+    if (userInfo.password && userInfo.password.length < 8) {
+      setProfileMessage({ type: 'error', text: 'Yangi parol kamida 8 belgidan iborat bo‘lishi kerak.' });
+      return;
+    }
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setProfileMessage({ type: 'error', text: 'Avval tizimga kiring.' });
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const response = await fetch(`${API_URL}/profile`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          fullName: userInfo.fullName,
+          email: userInfo.email,
+          phone: userInfo.phone,
+          passport: userInfo.passport,
+          birthDate: userInfo.birthDate,
+          password: userInfo.password,
+          confirmPassword: userInfo.confirmPassword
+        })
+      });
+
+      if (response.status === 401) {
+        localStorage.clear();
+        navigate('/login');
+        return;
+      }
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setProfileMessage({ type: 'error', text: data.message || 'Saqlashda xatolik yuz berdi.' });
+        return;
+      }
+
+      if (data.token) localStorage.setItem('token', data.token);
+      if (data.user) applyUserToState(data.user);
+
+      setProfileMessage({ type: 'success', text: data.message || "Profil ma'lumotlari muvaffaqiyatli saqlandi!" });
+      setTimeout(() => {
+        setIsProfileModalOpen(false);
+        setProfileMessage({ type: '', text: '' });
+      }, 1200);
+    } catch (error) {
+      console.error('Profilni saqlashda xatolik:', error);
+      setProfileMessage({ type: 'error', text: 'Serverga ulanib bo‘lmadi. Backend ishlayotganini tekshiring.' });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   // Navigatsiya linklari
@@ -81,26 +202,30 @@ const ClientLayout = ({ isDarkMode, toggleDarkMode }) => {
     }
   ];
 
+  const inputClass = `w-full px-3.5 py-2.5 rounded-xl border focus:outline-none focus:border-teal-500 ${
+    isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+  }`;
+
   return (
     <div className={`min-h-screen flex flex-col pb-20 md:pb-0 transition-colors duration-500 ${
       isDarkMode ? 'bg-[#0f172a] text-slate-100' : 'bg-slate-50 text-slate-800'
     }`}>
       {/* Header / Navbar */}
       <header className={`border-b transition-colors duration-500 sticky top-0 z-40 backdrop-blur-md ${
-        isDarkMode 
-          ? 'bg-[#0d1527]/90 border-slate-800 text-white' 
+        isDarkMode
+          ? 'bg-[#0d1527]/90 border-slate-800 text-white'
           : 'bg-white/90 border-slate-200 text-slate-800 shadow-sm'
       }`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          
+
           {/* Logo */}
           <div className="flex items-center gap-2 sm:gap-3">
             <span className="text-lg sm:text-xl font-black tracking-wider text-teal-500">
               GRAND HOTEL
             </span>
             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-              isDarkMode 
-                ? 'bg-teal-500/10 text-teal-400 border-teal-500/30' 
+              isDarkMode
+                ? 'bg-teal-500/10 text-teal-400 border-teal-500/30'
                 : 'bg-teal-50 text-teal-700 border-teal-200'
             }`}>
               RESORT
@@ -110,12 +235,12 @@ const ClientLayout = ({ isDarkMode, toggleDarkMode }) => {
           {/* Desktop Navigatsiya linklari */}
           <nav className="hidden md:flex space-x-8 text-sm font-semibold">
             {navItems.map((item) => (
-              <NavLink 
+              <NavLink
                 key={item.path}
-                to={item.path} 
-                className={({ isActive }) => 
-                  isActive 
-                    ? 'text-teal-500 font-bold border-b-2 border-teal-500 pb-1' 
+                to={item.path}
+                className={({ isActive }) =>
+                  isActive
+                    ? 'text-teal-500 font-bold border-b-2 border-teal-500 pb-1'
                     : (isDarkMode ? 'text-slate-300 hover:text-white' : 'text-slate-600 hover:text-slate-900')
                 }
               >
@@ -126,13 +251,13 @@ const ClientLayout = ({ isDarkMode, toggleDarkMode }) => {
 
           {/* O'NG TARAF: KUN/TUN REJIM + DOIRA AVATAR & PROFIL MENYUSI */}
           <div className="flex items-center gap-3">
-            
+
             {/* KUN / TUN REJIM TUGMASI (AVATAR YONIDA) */}
             <button
               onClick={toggleDarkMode}
               className={`p-2 rounded-full border transition-all shadow-sm flex items-center justify-center ${
-                isDarkMode 
-                  ? 'bg-slate-800 border-slate-700 text-amber-400 hover:bg-slate-700' 
+                isDarkMode
+                  ? 'bg-slate-800 border-slate-700 text-amber-400 hover:bg-slate-700'
                   : 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200'
               }`}
               title="Rejimni almashtirish"
@@ -148,7 +273,7 @@ const ClientLayout = ({ isDarkMode, toggleDarkMode }) => {
               >
                 {/* Doira shaklidagi avatar */}
                 <div className="w-10 h-10 rounded-full bg-teal-500/20 text-teal-400 border-2 border-teal-500/60 flex items-center justify-center font-bold text-sm shadow-md group-hover:scale-105 transition">
-                  {userInfo.fullName.charAt(0).toUpperCase()}
+                  {(userInfo.fullName || 'U').charAt(0).toUpperCase()}
                 </div>
               </button>
 
@@ -170,10 +295,7 @@ const ClientLayout = ({ isDarkMode, toggleDarkMode }) => {
                     </div>
 
                     <button
-                      onClick={() => {
-                        setIsProfileDropdownOpen(false);
-                        setIsProfileModalOpen(true);
-                      }}
+                      onClick={openProfileModal}
                       className={`w-full flex items-center gap-3 px-4 py-2.5 text-xs font-semibold transition ${
                         isDarkMode ? 'hover:bg-slate-800/60 text-slate-200' : 'hover:bg-slate-100 text-slate-700'
                       }`}
@@ -222,8 +344,8 @@ const ClientLayout = ({ isDarkMode, toggleDarkMode }) => {
 
       {/* MOBIL UCHUN PASTKI MENYU */}
       <div className={`md:hidden fixed bottom-0 left-0 right-0 z-40 border-t backdrop-blur-lg transition-colors duration-500 ${
-        isDarkMode 
-          ? 'bg-[#0d1527]/95 border-slate-800/80 text-slate-400' 
+        isDarkMode
+          ? 'bg-[#0d1527]/95 border-slate-800/80 text-slate-400'
           : 'bg-white/95 border-slate-200/80 text-slate-500 shadow-lg'
       }`}>
         <div className="flex items-center justify-around h-16 px-2 max-w-md mx-auto">
@@ -235,8 +357,8 @@ const ClientLayout = ({ isDarkMode, toggleDarkMode }) => {
                 `flex flex-col items-center justify-center flex-1 py-1 text-[11px] font-medium transition-all ${
                   isActive
                     ? 'text-teal-500 font-bold scale-105'
-                    : isDarkMode 
-                      ? 'hover:text-slate-200' 
+                    : isDarkMode
+                      ? 'hover:text-slate-200'
                       : 'hover:text-slate-800'
                 }`
               }
@@ -261,8 +383,8 @@ const ClientLayout = ({ isDarkMode, toggleDarkMode }) => {
           >
             <div className="flex items-center justify-between pb-4 border-b border-slate-800/50">
               <h3 className="text-lg font-bold">Profil ma'lumotlarini tahrirlash</h3>
-              <button 
-                onClick={() => setIsProfileModalOpen(false)}
+              <button
+                onClick={closeProfileModal}
                 className="p-1 rounded-lg text-slate-400 hover:text-white"
               >
                 ✕
@@ -270,6 +392,16 @@ const ClientLayout = ({ isDarkMode, toggleDarkMode }) => {
             </div>
 
             <form onSubmit={handleSaveProfile} className="space-y-4 py-4 text-sm">
+              {profileMessage.text && (
+                <div className={`px-4 py-2.5 rounded-xl text-xs font-semibold border ${
+                  profileMessage.type === 'success'
+                    ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30'
+                    : 'bg-rose-500/10 text-rose-500 border-rose-500/30'
+                }`}>
+                  {profileMessage.text}
+                </div>
+              )}
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-400 mb-1">Ism-Familiya</label>
@@ -278,9 +410,7 @@ const ClientLayout = ({ isDarkMode, toggleDarkMode }) => {
                     required
                     value={userInfo.fullName}
                     onChange={(e) => setUserInfo({ ...userInfo, fullName: e.target.value })}
-                    className={`w-full px-3.5 py-2.5 rounded-xl border focus:outline-none focus:border-teal-500 ${
-                      isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
+                    className={inputClass}
                   />
                 </div>
 
@@ -291,9 +421,7 @@ const ClientLayout = ({ isDarkMode, toggleDarkMode }) => {
                     placeholder="+998 90 123 45 67"
                     value={userInfo.phone}
                     onChange={(e) => setUserInfo({ ...userInfo, phone: e.target.value })}
-                    className={`w-full px-3.5 py-2.5 rounded-xl border focus:outline-none focus:border-teal-500 ${
-                      isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
+                    className={inputClass}
                   />
                 </div>
               </div>
@@ -305,9 +433,7 @@ const ClientLayout = ({ isDarkMode, toggleDarkMode }) => {
                   required
                   value={userInfo.email}
                   onChange={(e) => setUserInfo({ ...userInfo, email: e.target.value })}
-                  className={`w-full px-3.5 py-2.5 rounded-xl border focus:outline-none focus:border-teal-500 ${
-                    isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
+                  className={inputClass}
                 />
               </div>
 
@@ -319,9 +445,7 @@ const ClientLayout = ({ isDarkMode, toggleDarkMode }) => {
                     placeholder="AA 1234567"
                     value={userInfo.passport}
                     onChange={(e) => setUserInfo({ ...userInfo, passport: e.target.value })}
-                    className={`w-full px-3.5 py-2.5 rounded-xl border focus:outline-none focus:border-teal-500 ${
-                      isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
+                    className={inputClass}
                   />
                 </div>
 
@@ -331,9 +455,7 @@ const ClientLayout = ({ isDarkMode, toggleDarkMode }) => {
                     type="date"
                     value={userInfo.birthDate}
                     onChange={(e) => setUserInfo({ ...userInfo, birthDate: e.target.value })}
-                    className={`w-full px-3.5 py-2.5 rounded-xl border focus:outline-none focus:border-teal-500 ${
-                      isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
+                    className={inputClass}
                   />
                 </div>
               </div>
@@ -348,9 +470,7 @@ const ClientLayout = ({ isDarkMode, toggleDarkMode }) => {
                       placeholder="••••••••"
                       value={userInfo.password}
                       onChange={(e) => setUserInfo({ ...userInfo, password: e.target.value })}
-                      className={`w-full px-3.5 py-2.5 rounded-xl border focus:outline-none focus:border-teal-500 ${
-                        isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                      }`}
+                      className={inputClass}
                     />
                   </div>
                   <div>
@@ -360,9 +480,7 @@ const ClientLayout = ({ isDarkMode, toggleDarkMode }) => {
                       placeholder="••••••••"
                       value={userInfo.confirmPassword}
                       onChange={(e) => setUserInfo({ ...userInfo, confirmPassword: e.target.value })}
-                      className={`w-full px-3.5 py-2.5 rounded-xl border focus:outline-none focus:border-teal-500 ${
-                        isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                      }`}
+                      className={inputClass}
                     />
                   </div>
                 </div>
@@ -371,16 +489,18 @@ const ClientLayout = ({ isDarkMode, toggleDarkMode }) => {
               <div className="pt-4 flex space-x-3">
                 <button
                   type="button"
-                  onClick={() => setIsProfileModalOpen(false)}
-                  className="w-1/2 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-xl transition"
+                  onClick={closeProfileModal}
+                  disabled={isSaving}
+                  className="w-1/2 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-xl transition disabled:opacity-60"
                 >
                   Bekor qilish
                 </button>
                 <button
                   type="submit"
-                  className="w-1/2 py-2.5 bg-teal-600 hover:bg-teal-500 text-white font-semibold rounded-xl shadow-lg transition"
+                  disabled={isSaving}
+                  className="w-1/2 py-2.5 bg-teal-600 hover:bg-teal-500 text-white font-semibold rounded-xl shadow-lg transition disabled:opacity-60"
                 >
-                  Saqlash
+                  {isSaving ? 'Saqlanmoqda...' : 'Saqlash'}
                 </button>
               </div>
             </form>

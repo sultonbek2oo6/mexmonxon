@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 import { 
   Utensils, 
   Sparkles, 
@@ -77,12 +79,38 @@ const Housekeeping = () => {
     }
   ]);
 
-  // Buyurtmalar ro'yxati (Service Orders)
-  const [serviceOrders, setServiceOrders] = useState([
-    { id: 101, roomNo: '202', serviceName: 'Room Service', price: '$15', time: '10:30 AM', status: 'Pending' },
-    { id: 102, roomNo: '101', serviceName: 'Laundry', price: '$10', time: '09:15 AM', status: 'Completed' },
-    { id: 103, roomNo: '301', serviceName: 'Spa & Wellness', price: '$30', time: '11:00 AM', status: 'In Progress' },
-  ]);
+  const [serviceOrders, setServiceOrders] = useState([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const [ordersError, setOrdersError] = useState('');
+
+  useEffect(() => {
+    const loadOrders = async () => {
+      setOrdersLoading(true);
+      try {
+        const response = await fetch(`${API_URL}/services/orders`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || 'Buyurtmalarni olib bo‘lmadi.');
+        setServiceOrders(data.map((order) => ({
+          id: order.ID,
+          roomNo: order.ROOM_NUMBER,
+          serviceName: order.SERVICE_NAME,
+          price: `${Number(order.TOTAL_PRICE || 0).toLocaleString()} UZS`,
+          scheduledAt: order.SCHEDULED_AT,
+          staffNames: order.STAFF_NAMES || 'Xodim biriktirilmagan',
+          guestName: order.GUEST_NAME,
+          status: 'Scheduled'
+        })));
+      } catch (error) {
+        console.error('Xizmat buyurtmalarini yuklashda xatolik:', error);
+        setOrdersError(error.message);
+      } finally {
+        setOrdersLoading(false);
+      }
+    };
+    loadOrders();
+  }, []);
 
   const handleOpenOrderModal = (service) => {
     setSelectedOrderService(service);
@@ -116,6 +144,8 @@ const Housekeeping = () => {
         return 'bg-amber-500/10 text-amber-500 border-amber-500/30';
       case 'Pending':
         return 'bg-sky-500/10 text-sky-400 border-sky-500/30';
+      case 'Scheduled':
+        return 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30';
       default:
         return 'bg-slate-500/10 text-slate-400 border-slate-500/30';
     }
@@ -239,12 +269,17 @@ const Housekeeping = () => {
                   <th className="py-4 px-6">Room No</th>
                   <th className="py-4 px-6">Service Name</th>
                   <th className="py-4 px-6">Price</th>
-                  <th className="py-4 px-6">Time</th>
+                  <th className="py-4 px-6">Scheduled time</th>
+                  <th className="py-4 px-6">Assigned staff</th>
                   <th className="py-4 px-6">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/40">
-                {serviceOrders.length > 0 ? (
+                {ordersLoading ? (
+                  <tr><td colSpan="6" className="py-8 text-center text-slate-400">Loading service orders...</td></tr>
+                ) : ordersError ? (
+                  <tr><td colSpan="6" className="py-8 text-center text-rose-500">{ordersError}</td></tr>
+                ) : serviceOrders.length > 0 ? (
                   serviceOrders.map((order) => (
                     <tr key={order.id} className="hover:bg-slate-800/20 transition duration-150">
                       <td className={`py-4 px-6 font-bold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
@@ -252,7 +287,8 @@ const Housekeeping = () => {
                       </td>
                       <td className="py-4 px-6 text-slate-300 font-medium">{order.serviceName}</td>
                       <td className="py-4 px-6 text-emerald-500 font-bold">{order.price}</td>
-                      <td className="py-4 px-6 text-slate-400 text-xs">{order.time}</td>
+                      <td className="py-4 px-6 text-slate-400 text-xs">{order.scheduledAt ? new Date(order.scheduledAt).toLocaleString() : order.time}</td>
+                      <td className="py-4 px-6 text-slate-300 text-xs">{order.staffNames || 'Xodim biriktirilmagan'}</td>
                       <td className="py-4 px-6">
                         <span className={`px-3 py-1 rounded-lg text-xs font-semibold border ${getStatusBadge(order.status)}`}>
                           {order.status}
@@ -262,7 +298,7 @@ const Housekeeping = () => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="5" className="py-8 text-center text-slate-400">
+                      <td colSpan="6" className="py-8 text-center text-slate-400">
                       No service orders found.
                     </td>
                   </tr>
@@ -287,7 +323,8 @@ const Housekeeping = () => {
                   <p>Service: <span className="font-semibold text-slate-200">{order.serviceName}</span></p>
                   <p>Price: <span className="font-bold text-emerald-500">{order.price}</span></p>
                 </div>
-                <p className="text-[11px] text-slate-500 text-right">Time: {order.time}</p>
+                <p className="text-[11px] text-slate-500">Scheduled: {order.scheduledAt ? new Date(order.scheduledAt).toLocaleString() : order.time}</p>
+                <p className="text-[11px] text-slate-500">Staff: {order.staffNames || 'Xodim biriktirilmagan'}</p>
               </div>
             ))}
           </div>

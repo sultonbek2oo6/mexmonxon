@@ -7,18 +7,15 @@ oracledb.outFormat = oracledb.OUT_FORMAT_OBJECT;
 oracledb.autoCommit = true;
 
 export async function initializeDatabase() {
-  try {
-    await oracledb.createPool({
-      user: process.env.DB_USER,
-      password: process.env.DB_PASSWORD,
-      connectString: process.env.DB_CONNECT_STRING,
-      poolMin: parseInt(process.env.DB_POOL_MIN || '1'),
-      poolMax: parseInt(process.env.DB_POOL_MAX || '10')
-    });
-    console.log("✅ Oracle Database bilan Connection Pool muvaffaqiyatli ishga tushdi");
-  } catch (err) {
-    console.error("❌ Oracle DB pool yaratishda xatolik:", err);
-  }
+  const pool = await oracledb.createPool({
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    connectString: process.env.DB_CONNECT_STRING,
+    poolMin: parseInt(process.env.DB_POOL_MIN || '1', 10),
+    poolMax: parseInt(process.env.DB_POOL_MAX || '10', 10)
+  });
+  console.log("✅ Oracle Database bilan Connection Pool muvaffaqiyatli ishga tushdi");
+  return pool;
 }
 
 export async function executeQuery(sql, binds = {}, opts = {}) {

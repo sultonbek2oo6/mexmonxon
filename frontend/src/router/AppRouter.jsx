@@ -51,7 +51,7 @@ const AppRouter = ({ isDarkMode, toggleDarkMode }) => {
       </Route>
 
       {/* Foydalanuvchi marshrutlari */}
-      <Route element={<ProtectedRoute allowedRoles={['user', 'admin']} />}>
+      <Route element={<ProtectedRoute allowedRoles={['guest', 'user']} />}>
         {/* 2. ClientLayout'ga isDarkMode va toggleDarkMode props'larini uzatamiz */}
         <Route path="/client" element={<ClientLayout isDarkMode={isDarkMode} toggleDarkMode={toggleDarkMode} />}>
           <Route index element={<Navigate to="/client/home" replace />} />
