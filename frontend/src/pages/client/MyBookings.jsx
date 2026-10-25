@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useOutletContext, Link } from 'react-router-dom';
 import axios from 'axios';
+import { api } from '../../lib/api';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
@@ -43,15 +44,11 @@ const MyBookings = () => {
     const fetchBookings = async (showLoading = false) => {
       try {
         if (showLoading) setLoading(true);
-        // Token yoki user_id bo'yicha so'rov yuborish (hozircha umumiy yoki test user_id=1 bilan)
-        const response = await axios.get(`${API_URL}/bookings`, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`
-          }
-        });
+        // Backend bronlarni token ichidagi joriy foydalanuvchi ID'si bo'yicha qaytaradi.
+        const response = await api('/bookings');
 
         // Oracle bazasidan kelgan ma'lumotlarni frontend formatiga moslash
-        const formattedData = response.data.map((item) => {
+        const formattedData = response.map((item) => {
           // Sana formatlash (YYYY-MM-DD dan DD.MM.YYYY ga)
           const formatDate = (dateStr) => {
             if (!dateStr) return '';
