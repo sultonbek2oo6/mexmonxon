@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import confetti from 'canvas-confetti';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
@@ -27,12 +28,66 @@ const ClientLayout = ({ isDarkMode, toggleDarkMode }) => {
     confirmPassword: ''
   });
 
+  // Tug'ilgan kungacha qolgan vaqtni hisoblash holati
+  const [birthdayCountdown, setBirthdayCountdown] = useState({ 
+    days: 0, 
+    hours: 0, 
+    minutes: 0, 
+    seconds: 0, 
+    isToday: false 
+  });
+
+  // Tug'ilgan kun hisoblagichi va sekundma-sekund yangilanishi
+  useEffect(() => {
+    if (!userInfo.birthDate) return;
+
+    const calculateBirthday = () => {
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      
+      const parts = userInfo.birthDate.split('-');
+      if (parts.length < 3) return;
+      const birthMonth = parseInt(parts[1], 10);
+      const birthDay = parseInt(parts[2], 10);
+
+      let nextBirthday = new Date(currentYear, birthMonth - 1, birthDay);
+
+      // Agar bu yilgi tug'ilgan kun o'tgan bo'lsa, kelasi yilgiga hisoblaymiz
+      if (now > nextBirthday) {
+        nextBirthday.setFullYear(currentYear + 1);
+      }
+
+      const diff = nextBirthday - now;
+      const isToday = now.getDate() === birthDay && (now.getMonth() + 1) === birthMonth;
+
+      if (isToday) {
+        setBirthdayCountdown({ days: 0, hours: 0, minutes: 0, seconds: 0, isToday: true });
+        // Salyut animatsiyasini har 10 sekundda bir marta yoki bugungi kunda ishga tushirish
+        confetti({
+          particleCount: 80,
+          spread: 70,
+          origin: { y: 0.6 }
+        });
+      } else {
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+        const minutes = Math.floor((diff / 1000 / 60) % 60);
+        const seconds = Math.floor((diff / 1000) % 60);
+
+        setBirthdayCountdown({ days, hours, minutes, seconds, isToday: false });
+      }
+    };
+
+    calculateBirthday();
+    const timer = setInterval(calculateBirthday, 1000); // Har sekundda yangilanadi
+    return () => clearInterval(timer);
+  }, [userInfo.birthDate]);
+
   const handleLogout = () => {
     localStorage.clear();
     navigate('/login');
   };
 
-  // Backenddan kelgan user ma'lumotlarini state va localStorage ga yozish
   const applyUserToState = (user) => {
     const next = {
       fullName: user.full_name || '',
@@ -49,7 +104,6 @@ const ClientLayout = ({ isDarkMode, toggleDarkMode }) => {
     setUserInfo((prev) => ({ ...prev, ...next, password: '', confirmPassword: '' }));
   };
 
-  // Sahifa ochilganda profilni backenddan yuklash
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) return;
@@ -162,7 +216,6 @@ const ClientLayout = ({ isDarkMode, toggleDarkMode }) => {
     }
   };
 
-  // Navigatsiya linklari
   const navItems = [
     {
       name: 'Bosh sahifa',
@@ -249,10 +302,25 @@ const ClientLayout = ({ isDarkMode, toggleDarkMode }) => {
             ))}
           </nav>
 
-          {/* O'NG TARAF: KUN/TUN REJIM + DOIRA AVATAR & PROFIL MENYUSI */}
+          {/* O'NG TARAF: TUG'ILGAN KUN COUNTER / TABRIK + REJIM + AVATAR */}
           <div className="flex items-center gap-3">
 
-            {/* KUN / TUN REJIM TUGMASI (AVATAR YONIDA) */}
+            {/* TUG'ILGAN KUNGA QOLGAN VAQT YOKI TABRIK */}
+            <div className={`hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-semibold ${
+              birthdayCountdown.isToday
+                ? 'bg-gradient-to-r from-amber-500/20 to-teal-500/20 border-amber-500/40 text-amber-400 animate-pulse'
+                : isDarkMode ? 'bg-slate-800/60 border-slate-700/60 text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-700'
+            }`}>
+              {birthdayCountdown.isToday ? (
+                <span>🎉 Tabriklaymiz! Bugun Sizning Tug'ilgan kuningiz! 🎂</span>
+              ) : (
+                <span>
+                  🎂 Tug'ilgan kunga: <strong className="text-teal-400">{birthdayCountdown.days}d</strong> {birthdayCountdown.hours}s {birthdayCountdown.minutes}m <strong className="text-teal-400">{birthdayCountdown.seconds}s</strong>
+                </span>
+              )}
+            </div>
+
+            {/* KUN / TUN REJIM TUGMASI */}
             <button
               onClick={toggleDarkMode}
               className={`p-2 rounded-full border transition-all shadow-sm flex items-center justify-center ${
@@ -271,7 +339,6 @@ const ClientLayout = ({ isDarkMode, toggleDarkMode }) => {
                 onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
                 className="flex items-center focus:outline-none group"
               >
-                {/* Doira shaklidagi avatar */}
                 <div className="w-10 h-10 rounded-full bg-teal-500/20 text-teal-400 border-2 border-teal-500/60 flex items-center justify-center font-bold text-sm shadow-md group-hover:scale-105 transition">
                   {(userInfo.fullName || 'U').charAt(0).toUpperCase()}
                 </div>
