@@ -31,9 +31,9 @@ export const getAllServiceOrders = async (req, res) => {
            SELECT staff_by_room.ROOM_ID,
                   LISTAGG(staff_by_room.STAFF_NAME, ', ') WITHIN GROUP (ORDER BY staff_by_room.STAFF_NAME) AS STAFF_NAMES
              FROM (
-               SELECT DISTINCT h.ROOM_ID, e.FIRST_NAME || ' ' || e.LAST_NAME AS STAFF_NAME
-                 FROM MEXMONXONALAR_TIZIMI.HOUSEKEEPING h
-                 JOIN MEXMONXONALAR_TIZIMI.EMPLOYEES e ON e.ID = h.EMPLOYEE_ID
+           SELECT DISTINCT a.ROOM_ID, e.FIRST_NAME || ' ' || e.LAST_NAME AS STAFF_NAME
+             FROM MEXMONXONALAR_TIZIMI.EMPLOYEE_ROOM_ASSIGNMENTS a
+             JOIN MEXMONXONALAR_TIZIMI.EMPLOYEES e ON e.ID = a.EMPLOYEE_ID AND e.IS_ACTIVE=1
              ) staff_by_room
             GROUP BY staff_by_room.ROOM_ID
          ) room_staff ON room_staff.ROOM_ID = b.ROOM_ID
@@ -79,7 +79,7 @@ export const createServiceOrder = async (req, res) => {
     const bookingResult = await connection.execute(
       `SELECT ID, ROOM_ID FROM MEXMONXONALAR_TIZIMI.BOOKINGS
        WHERE ID = :bookingId AND USER_ID = :userId
-         AND LOWER(TRIM(STATUS)) NOT IN ('cancelled', 'canceled', 'bekor qilingan')
+         AND LOWER(TRIM(STATUS)) IN ('confirmed', 'checked-in', 'checked in')
          AND TO_TIMESTAMP(:scheduledAt, 'YYYY-MM-DD"T"HH24:MI') >= CAST(CHECK_IN_DATE AS TIMESTAMP)
          AND TO_TIMESTAMP(:scheduledAt, 'YYYY-MM-DD"T"HH24:MI') < CAST(TRUNC(CHECK_OUT_DATE) + 1 AS TIMESTAMP)`,
       { bookingId, userId, scheduledAt }, { outFormat: oracledb.OUT_FORMAT_OBJECT }

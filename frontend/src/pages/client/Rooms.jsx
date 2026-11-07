@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { useOutletContext } from 'react-router-dom';
+import { useLocation, useOutletContext } from 'react-router-dom';
+import { API_URL } from '../../lib/api';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 const dateKey = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 
 const Rooms = () => {
   const { isDarkMode } = useOutletContext();
+  const location = useLocation();
+  const search = location.state || {};
 
   const [selectedType, setSelectedType] = useState('Barcha');
   const [priceRange, setPriceRange] = useState(2000000);
@@ -14,10 +16,10 @@ const Rooms = () => {
 
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
-  const [checkInDate, setCheckInDate] = useState('');
-  const [checkOutDate, setCheckOutDate] = useState('');
+  const [checkInDate, setCheckInDate] = useState(() => search.checkIn || '');
+  const [checkOutDate, setCheckOutDate] = useState(() => search.checkOut || '');
   const dates = checkInDate && checkOutDate ? `${checkInDate} - ${checkOutDate}` : 'Sanalarni tanlang';
-  const [guests, setGuests] = useState('2 katta, 0 bola');
+  const [guests, setGuests] = useState(() => search.guests || '2 katta, 0 bola');
 
   const [activeBookingRoom, setActiveBookingRoom] = useState(null);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -25,6 +27,15 @@ const Rooms = () => {
   const [bookedRanges, setBookedRanges] = useState([]);
   const [calendarMonth, setCalendarMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
   const [dateStep, setDateStep] = useState('checkIn');
+
+  useEffect(() => {
+    const nextSearch = location.state;
+    if (!nextSearch) return;
+    setCheckInDate(nextSearch.checkIn || '');
+    setCheckOutDate(nextSearch.checkOut || '');
+    setGuests(nextSearch.guests || '2 katta, 0 bola');
+    setDateStep(nextSearch.checkIn && nextSearch.checkOut ? 'checkOut' : 'checkIn');
+  }, [location.key, location.state]);
 
   useEffect(() => {
     if (!activeBookingRoom) { setBookedRanges([]); return; }
@@ -36,6 +47,12 @@ const Rooms = () => {
       }))))
       .catch(() => setBookedRanges([]));
   }, [activeBookingRoom]);
+
+  useEffect(() => {
+    if (!activeBookingRoom || !checkInDate) return;
+    const [year, month] = checkInDate.split('-').map(Number);
+    if (year && month) setCalendarMonth(new Date(year, month - 1, 1));
+  }, [activeBookingRoom, checkInDate]);
 
   const datesConflict = (start, end) => bookedRanges.some((range) => start < range.end && end > range.start);
   const todayKey = dateKey(new Date());
@@ -63,11 +80,21 @@ const Rooms = () => {
   // Bazadan keladigan xonalar uchun state'lar
   const [allRooms, setAllRooms] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [roomsError, setRoomsError] = useState('');
 
   // Backend API orqali bazadan ma'lumotlarni tortib kelish
   useEffect(() => {
-    fetch(`${API_URL}/rooms`)
-      .then((res) => res.json())
+    setLoading(true);
+    setRoomsError('');
+    const query = search.checkIn && search.checkOut
+      ? `?checkIn=${encodeURIComponent(search.checkIn)}&checkOut=${encodeURIComponent(search.checkOut)}`
+      : '';
+    fetch(`${API_URL}/rooms${query}`)
+      .then(async (res) => {
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Xonalarni yuklab bo‘lmadi.');
+        return data;
+      })
       .then((data) => {
         const formattedRooms = data.map((room) => ({
           id: room.ID || room.id,
@@ -78,19 +105,22 @@ const Rooms = () => {
           size: room.DESCRIPTION || room.description || '30 m²',
           floor: `${room.FLOOR || room.floor}-qavat`,
           roomNumber: room.ROOM_NUMBER || room.room_number,
+          status: String(room.STATUS || room.status || '').trim().toLowerCase(),
           rating: 4.8,
           reviews: 94,
-          badge: room.STATUS === 'available' ? 'Mavjud' : 'Band',
+          badge: ['available', 'free', 'clean'].includes(String(room.STATUS || room.status || '').trim().toLowerCase()) ? 'Mavjud' : 'Band',
           image: room.IMAGE_URL || room.image_url || 'https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&q=80&w=800'
         }));
         setAllRooms(formattedRooms);
+        setRoomsError('');
         setLoading(false);
       })
       .catch((err) => {
         console.error("Xonalarni yuklashda xatolik:", err);
+        setRoomsError(err.message || 'Xonalarni yuklab bo‘lmadi.');
         setLoading(false);
       });
-  }, []);
+  }, [search.checkIn, search.checkOut]);
 
   const toggleFavorite = (id) => {
     if (favorites.includes(id)) {
@@ -106,6 +136,8 @@ const Rooms = () => {
     const matchesFloor = selectedFloor === 'Barcha' || room.floor === selectedFloor;
     return matchesType && matchesPrice && matchesFloor;
   });
+  const roomTypes = ['Barcha', ...new Set(allRooms.map((room) => room.type).filter(Boolean))];
+  const roomFloors = [...new Set(allRooms.map((room) => room.floor).filter(Boolean))].sort();
 
   // BRON VA TO'LOVNI BAZAGA SAQLASH
   const handleConfirmBooking = async (e) => {
@@ -192,14 +224,18 @@ const Rooms = () => {
               <span className="text-[11px] sm:text-xs">{guests}</span>
             </div>
 
-            <button className="bg-teal-600 hover:bg-teal-500 text-white font-bold px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl text-[11px] sm:text-xs transition-all shadow-md">
-              Qidirish
-            </button>
+            <span className="text-[10px] text-teal-500 font-semibold">
+              {search.checkIn && search.checkOut ? 'Sanalar bo‘yicha tekshirildi' : 'Sanani bron oynasida tanlang'}
+            </span>
           </div>
         </div>
 
         {loading ? (
           <div className="text-center py-20 text-teal-500 font-bold text-lg animate-pulse">Xonalar bazadan yuklanmoqda...</div>
+        ) : roomsError ? (
+          <div role="alert" className="py-16 text-center text-rose-500">{roomsError}</div>
+        ) : allRooms.length === 0 ? (
+          <div className="py-16 text-center text-slate-400">Tanlangan sanalarda bo‘sh xona topilmadi.</div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
             
@@ -241,7 +277,7 @@ const Rooms = () => {
                     Xona turi
                   </label>
                   <div className="space-y-1.5 sm:space-y-2">
-                    {['Barcha', 'Standard', 'Deluxe', 'Suite'].map((type) => (
+                    {roomTypes.map((type) => (
                       <label 
                         key={type} 
                         className={`flex items-center justify-between p-2 sm:p-2.5 rounded-xl cursor-pointer transition-all border ${
@@ -306,9 +342,7 @@ const Rooms = () => {
                     }`}
                   >
                     <option value="Barcha">Barcha qavatlar</option>
-                    <option value="1-qavat">1-qavat</option>
-                    <option value="2-qavat">2-qavat</option>
-                    <option value="3-qavat">3-qavat</option>
+                    {roomFloors.map((floor) => <option key={floor} value={floor}>{floor}</option>)}
                   </select>
                 </div>
               </div>
@@ -381,8 +415,10 @@ const Rooms = () => {
 
                       <div className="p-2.5 sm:p-6 pt-0">
                         <button
+                          type="button"
+                          disabled={['cleaning', 'maintenance', 'under maintenance'].includes(room.status)}
                           onClick={() => setActiveBookingRoom(room)}
-                          className="w-full py-2 sm:py-3.5 bg-teal-600 hover:bg-teal-500 text-white font-bold rounded-xl sm:rounded-2xl text-xs sm:text-sm transition-all shadow-md transform hover:-translate-y-0.5"
+                          className="w-full py-2 sm:py-3.5 bg-teal-600 hover:bg-teal-500 text-white font-bold rounded-xl sm:rounded-2xl text-xs sm:text-sm transition-all shadow-md transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           Bron qilish va To'lash
                         </button>
@@ -405,7 +441,7 @@ const Rooms = () => {
           }`}>
             <div>
               <div className={`flex items-center justify-between border-b pb-4 mb-6 ${isDarkMode ? 'border-slate-800' : 'border-slate-100'}`}>
-                <h3 className="text-lg sm:text-xl font-bold">Xonani Bron Qilish va To'lov</h3>
+                <h3 className="text-lg sm:text-xl font-bold">Xona bron qilish</h3>
                 <button 
                   onClick={() => setActiveBookingRoom(null)}
                   className={`p-1 rounded-lg hover:bg-slate-500/10 ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}
@@ -494,8 +530,9 @@ const Rooms = () => {
                   {/* TO'LOV USULINI TANLASH (PAYMENT METHOD) */}
                   <div>
                     <label className={`block text-xs font-semibold uppercase mb-2 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                      To'lov Usulini Tanlang
+                      To‘lov usulini tanlang
                     </label>
+                    <p className="mb-2 text-xs text-slate-400">Tanlangan usul bron so‘roviga biriktiriladi. To‘lov mehmonxona tomonidan tasdiqlangach kirim hisoblanadi.</p>
                     <div className="grid grid-cols-2 gap-2">
                       {[
                         { id: 'Card', label: '💳 Plastik Karta' },
@@ -519,28 +556,12 @@ const Rooms = () => {
                     </div>
                   </div>
 
-                  {/* KARTA RAQAMI (Agar Karta tanlansa) */}
-                  {paymentMethod === 'Card' && (
-                    <div>
-                      <label className={`block text-xs font-semibold uppercase mb-1 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Karta raqami</label>
-                      <input 
-                        required 
-                        type="text" 
-                        maxLength="16" 
-                        placeholder="8600 **** **** ****" 
-                        className={`w-full border rounded-xl p-3 text-sm focus:outline-none focus:border-teal-500 ${
-                          isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                        }`} 
-                      />
-                    </div>
-                  )}
-
                   <button
                     type="submit"
                     disabled={loadingPayment || !checkInDate || !checkOutDate || datesConflict(checkInDate, checkOutDate)}
                     className="w-full py-4 bg-teal-600 hover:bg-teal-500 text-white font-extrabold rounded-2xl text-sm transition shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {loadingPayment ? "Bron saqlanmoqda..." : 'Bronni tasdiqlash'}
+                    {loadingPayment ? "Bron saqlanmoqda..." : 'Bron so‘rovini yuborish'}
                   </button>
                 </form>
               )}

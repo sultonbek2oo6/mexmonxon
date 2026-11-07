@@ -1,8 +1,12 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import HotelIntro from './HotelIntro';
+import { API_URL } from '../../lib/api';
 
 const Login = () => {
+  const [introComplete, setIntroComplete] = useState(false);
+  const completeIntro = useCallback(() => setIntroComplete(true), []);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
@@ -21,7 +25,7 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:5001/api/auth/login', {
+      const response = await fetch(`${API_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -37,8 +41,9 @@ const Login = () => {
       const role = String(data.user.role || 'guest').toLowerCase();
       localStorage.setItem('role', role);
       localStorage.setItem('user', JSON.stringify(data.user));
+      localStorage.setItem('permissions', JSON.stringify(data.user.permissions || []));
 
-      if (role === 'admin') {
+      if (['admin', 'manager'].includes(role)) {
         navigate('/admin/dashboard');
       } else {
         navigate('/client/home');
@@ -54,7 +59,7 @@ const Login = () => {
     e.preventDefault();
     setError(''); setNotice(''); setLoading(true);
     try {
-      const response = await fetch('http://localhost:5001/api/auth/forgot-password', {
+      const response = await fetch(`${API_URL}/auth/forgot-password`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email })
       });
@@ -69,7 +74,7 @@ const Login = () => {
     e.preventDefault();
     setError(''); setNotice(''); setLoading(true);
     try {
-      const response = await fetch('http://localhost:5001/api/auth/reset-password', {
+      const response = await fetch(`${API_URL}/auth/reset-password`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token: resetToken, password: resetPassword })
       });
@@ -85,38 +90,64 @@ const Login = () => {
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center relative overflow-hidden font-sans">
-      <div 
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-transform duration-1000 scale-105"
+      <HotelIntro onComplete={completeIntro} />
+      <motion.div
+        initial={{ scale: 1.08 }}
+        animate={{ scale: 1.015 }}
+        transition={{ duration: 18, ease: 'linear', repeat: Infinity, repeatType: 'reverse' }}
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
         style={{
           backgroundImage: `url('https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&q=80&w=1920')`
         }}
       />
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-[3px]" />
+      <div className="absolute inset-0 bg-gradient-to-br from-slate-950/65 via-slate-950/35 to-amber-950/45 backdrop-blur-[2px]" />
+      <motion.div
+        aria-hidden="true"
+        className="pointer-events-none absolute -left-40 top-[-20%] h-[140%] w-56 rotate-[18deg] bg-gradient-to-r from-transparent via-amber-100/10 to-transparent blur-2xl"
+        animate={{ x: ['-20vw', '120vw'] }}
+        transition={{ duration: 12, ease: 'easeInOut', repeat: Infinity, repeatDelay: 2 }}
+      />
+      <motion.div
+        aria-hidden="true"
+        className="pointer-events-none absolute left-[12%] top-[22%] h-2 w-2 rounded-full bg-amber-200/70 shadow-[0_0_24px_8px_rgba(251,191,36,0.24)]"
+        animate={{ y: [0, -22, 0], opacity: [0.35, 0.9, 0.35], scale: [0.8, 1.2, 0.8] }}
+        transition={{ duration: 5, ease: 'easeInOut', repeat: Infinity }}
+      />
+      <motion.div
+        aria-hidden="true"
+        className="pointer-events-none absolute bottom-[18%] right-[15%] h-1.5 w-1.5 rounded-full bg-amber-100/70 shadow-[0_0_20px_7px_rgba(251,191,36,0.2)]"
+        animate={{ y: [0, 18, 0], opacity: [0.25, 0.8, 0.25] }}
+        transition={{ duration: 6, ease: 'easeInOut', repeat: Infinity, delay: 1, repeatType: 'reverse' }}
+      />
 
-      <motion.div 
+      {introComplete && <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
         className="absolute top-6 left-8 z-10 flex items-center gap-3"
       >
-        <div className="w-10 h-10 rounded-xl bg-teal-500/85 backdrop-blur-md flex items-center justify-center font-bold text-white text-xl shadow-lg border border-teal-400/30">
-          Sj
+        <div className="relative w-11 h-11 rounded-2xl bg-gradient-to-br from-amber-200 to-amber-600 flex items-center justify-center font-serif font-bold text-slate-950 text-xl shadow-[0_8px_30px_rgba(217,165,84,0.35)] border border-amber-100/60">
+          <span>Sj</span>
         </div>
         <div className="flex flex-col">
           <span className="text-xl font-bold tracking-wide text-white uppercase leading-none drop-shadow-md">Grand Hotel</span>
-          <span className="text-[10px] text-teal-200 tracking-wider">Sultonbek Juraboyev</span>
+          <span className="text-[10px] text-amber-100/80 tracking-[0.22em] uppercase">Sultonbek Juraboyev</span>
         </div>
-      </motion.div>
+      </motion.div>}
 
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.92, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        transition={{ duration: 0.45, ease: 'easeOut' }}
-        className="relative z-10 w-full max-w-md mx-4 bg-slate-900/40 backdrop-blur-xl rounded-2xl p-8 border border-white/20 shadow-[0_8px_32px_0_rgba(0,0,0,0.5)]"
+      {introComplete && <motion.div
+        initial={{ opacity: 0, scale: 0.94, y: 28, filter: 'blur(8px)' }}
+        animate={{ opacity: 1, scale: 1, y: 0, filter: 'blur(0px)' }}
+        transition={{ duration: 0.85, delay: 0.12, ease: [0.22, 1, 0.36, 1] }}
+        className="relative z-10 w-full max-w-md mx-4 overflow-hidden rounded-[1.75rem] border border-amber-100/25 bg-slate-950/55 p-8 shadow-[0_24px_80px_rgba(0,0,0,0.55)] backdrop-blur-2xl"
       >
+        <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-amber-200/80 to-transparent" />
         <div className="text-center mb-6">
-          <h2 className="text-2xl font-bold text-white drop-shadow">{resetToken ? 'Yangi parol' : forgotMode ? 'Parolni tiklash' : 'Xush kelibsiz!'}</h2>
-          <p className="text-slate-200 text-sm mt-1">{resetToken ? 'Yangi parolingizni kiriting' : forgotMode ? 'Email manzilingizga tiklash havolasi yuboramiz' : "Mehmonga xizmat ko'rsatish tizimiga kirish"}</p>
+          {!resetToken && !forgotMode && <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full border border-amber-200/30 bg-amber-100/10 text-amber-200 shadow-[0_0_32px_rgba(251,191,36,0.14)]">
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-5 w-5"><path d="M7 10V7a5 5 0 0 1 10 0v3M5 10h14v11H5V10Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><path d="M12 14v3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+          </div>}
+          <h2 className="text-2xl font-semibold tracking-wide text-white drop-shadow">{resetToken ? 'Yangi parol' : forgotMode ? 'Parolni tiklash' : 'Xush kelibsiz!'}</h2>
+          <p className="text-slate-200/90 text-sm mt-1">{resetToken ? 'Yangi parolingizni kiriting' : forgotMode ? 'Email manzilingizga tiklash havolasi yuboramiz' : "Mehmonga xizmat ko'rsatish tizimiga kirish"}</p>
         </div>
 
         {error && (
@@ -124,20 +155,20 @@ const Login = () => {
             {error}
           </div>
         )}
-        {notice && <div className="mb-4 p-3 bg-teal-500/20 border border-teal-400/40 rounded-xl text-teal-100 text-xs text-center">{notice}</div>}
+        {notice && <div className="mb-4 p-3 bg-amber-500/15 border border-amber-300/30 rounded-xl text-amber-100 text-xs text-center">{notice}</div>}
 
         {resetToken ? (
           <form onSubmit={handleResetPassword} className="space-y-4">
             <label className="block text-xs font-semibold uppercase tracking-wider text-slate-200">Yangi parol</label>
-            <input type="password" minLength={8} required value={resetPassword} onChange={(e) => setResetPassword(e.target.value)} placeholder="Kamida 8 belgi" className="w-full px-4 py-3 rounded-xl bg-black/30 border border-white/20 text-white text-sm focus:outline-none focus:border-teal-400" />
-            <button disabled={loading} className="w-full py-3.5 bg-teal-500/80 text-white font-semibold rounded-xl disabled:opacity-50">{loading ? 'Saqlanmoqda...' : 'Parolni yangilash'}</button>
+            <input type="password" minLength={8} required value={resetPassword} onChange={(e) => setResetPassword(e.target.value)} placeholder="Kamida 8 belgi" className="w-full px-4 py-3 rounded-xl bg-black/30 border border-white/20 text-white text-sm focus:outline-none focus:border-amber-300" />
+            <button disabled={loading} className="w-full py-3.5 bg-amber-500/85 text-white font-semibold rounded-xl disabled:opacity-50">{loading ? 'Saqlanmoqda...' : 'Parolni yangilash'}</button>
           </form>
         ) : forgotMode ? (
           <form onSubmit={handleForgotPassword} className="space-y-4">
             <label className="block text-xs font-semibold uppercase tracking-wider text-slate-200">Email</label>
-            <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="example@gmail.com" className="w-full px-4 py-3 rounded-xl bg-black/30 border border-white/20 text-white text-sm focus:outline-none focus:border-teal-400" />
-            <button disabled={loading} className="w-full py-3.5 bg-teal-500/80 text-white font-semibold rounded-xl disabled:opacity-50">{loading ? 'Yuborilmoqda...' : 'Tiklash havolasini yuborish'}</button>
-            <button type="button" onClick={() => { setForgotMode(false); setError(''); setNotice(''); }} className="w-full text-teal-200 text-sm hover:underline">Kirishga qaytish</button>
+            <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="example@gmail.com" className="w-full px-4 py-3 rounded-xl bg-black/30 border border-white/20 text-white text-sm focus:outline-none focus:border-amber-300" />
+            <button disabled={loading} className="w-full py-3.5 bg-amber-500/85 text-white font-semibold rounded-xl disabled:opacity-50">{loading ? 'Yuborilmoqda...' : 'Tiklash havolasini yuborish'}</button>
+            <button type="button" onClick={() => { setForgotMode(false); setError(''); setNotice(''); }} className="w-full text-amber-100 text-sm hover:underline">Kirishga qaytish</button>
           </form>
         ) : (
         <form onSubmit={handleLogin} className="space-y-4">
@@ -147,10 +178,11 @@ const Login = () => {
             </label>
             <input
               type="email"
+              autoComplete="username"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="example@gmail.com"
-              className="w-full px-4 py-3 rounded-xl bg-black/30 backdrop-blur-md border border-white/20 text-white placeholder-slate-400 text-sm focus:outline-none focus:border-teal-400 focus:ring-1 focus:ring-teal-400 transition"
+              className="w-full px-4 py-3 rounded-xl bg-black/30 backdrop-blur-md border border-white/20 text-white placeholder-slate-400 text-sm focus:outline-none focus:border-amber-300 focus:ring-1 focus:ring-amber-300 transition"
               required
             />
           </div>
@@ -161,10 +193,11 @@ const Login = () => {
             </label>
             <input
               type="password"
+              autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
-              className="w-full px-4 py-3 rounded-xl bg-black/30 backdrop-blur-md border border-white/20 text-white placeholder-slate-400 text-sm focus:outline-none focus:border-teal-400 focus:ring-1 focus:ring-teal-400 transition"
+              className="w-full px-4 py-3 rounded-xl bg-black/30 backdrop-blur-md border border-white/20 text-white placeholder-slate-400 text-sm focus:outline-none focus:border-amber-300 focus:ring-1 focus:ring-amber-300 transition"
               required
             />
           </div>
@@ -175,11 +208,11 @@ const Login = () => {
                 type="checkbox"
                 checked={rememberMe}
                 onChange={(e) => setRememberMe(e.target.checked)}
-                className="rounded bg-black/40 border-white/30 text-teal-500 focus:ring-0 cursor-pointer"
+                className="rounded bg-black/40 border-white/30 text-amber-400 focus:ring-0 cursor-pointer"
               />
               <span>Eslab qolish</span>
             </label>
-            <button type="button" onClick={() => { setForgotMode(true); setError(''); setNotice(''); }} className="text-teal-300 hover:text-teal-200 hover:underline">
+            <button type="button" onClick={() => { setForgotMode(true); setError(''); setNotice(''); }} className="text-amber-200 hover:text-amber-100 hover:underline">
               Parolni unutdingizmi?
             </button>
           </div>
@@ -189,7 +222,7 @@ const Login = () => {
             whileTap={{ scale: 0.98 }}
             type="submit"
             disabled={loading}
-            className="w-full py-3.5 mt-2 bg-teal-500/80 hover:bg-teal-500 text-white font-semibold rounded-xl border border-teal-300/30 shadow-lg backdrop-blur-sm transition-all duration-200 disabled:opacity-50"
+            className="w-full py-3.5 mt-2 bg-amber-500/85 hover:bg-amber-400 text-white font-semibold rounded-xl border border-amber-200/30 shadow-lg backdrop-blur-sm transition-all duration-200 disabled:opacity-50"
           >
             {loading ? "Tekshirilmoqda..." : "Kirish"}
           </motion.button>
@@ -198,11 +231,11 @@ const Login = () => {
 
         {!forgotMode && !resetToken && <div className="text-center mt-6 text-xs text-slate-300">
           Hisobingiz yo'qmi?{' '}
-          <Link to="/register" className="text-teal-300 font-semibold hover:underline">
+          <Link to="/register" className="text-amber-200 font-semibold hover:underline">
             Ro'yxatdan o'ting
           </Link>
         </div>}
-      </motion.div>
+      </motion.div>}
     </div>
   );
 };

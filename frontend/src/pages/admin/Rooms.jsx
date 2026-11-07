@@ -18,19 +18,13 @@ const Rooms = () => {
     try {
       const [data, typeRows] = await Promise.all([api('/rooms'), api('/admin/room-types')]);
       setTypes(typeRows);
-      setRooms(data.map((r) => ({ id: r.ID, roomNo: r.ROOM_NUMBER, type: r.TYPE_NAME, typeId: r.TYPE_ID, floor: r.FLOOR, price: `${Number(r.BASE_PRICE).toLocaleString()} UZS`, status: ({ available: 'Free', free: 'Free', occupied: 'Occupied', booked: 'Occupied', cleaning: 'Cleaning' })[String(r.STATUS).toLowerCase()] || r.STATUS })));
+      setRooms(data.map((r) => ({ id: r.ID, roomNo: r.ROOM_NUMBER, type: r.TYPE_NAME, typeId: r.TYPE_ID, floor: r.FLOOR, price: `${Number(r.BASE_PRICE).toLocaleString()} UZS`, status: ({ available: 'Free', free: 'Free', occupied: 'Occupied', booked: 'Occupied', cleaning: 'Cleaning', maintenance: 'Maintenance', 'under maintenance': 'Maintenance' })[String(r.STATUS).toLowerCase()] || r.STATUS })));
     } catch (error) { console.error('Rooms loading failed:', error); }
   };
   useEffect(() => { loadRooms(); }, []);
 
   // Form holati
-  const [roomForm, setRoomForm] = useState({
-    roomNo: '',
-    type: 'Standard',
-    floor: 1,
-    price: '$80',
-    status: 'Free'
-  });
+  const [roomForm, setRoomForm] = useState({ roomNo: '', type: '', floor: 1, status: 'Free' });
 
   // Status ranglari va uslublari
   const getStatusBadge = (status) => {
@@ -48,13 +42,15 @@ const Rooms = () => {
 
   // Qidiruv va Filtr
   const filteredRooms = rooms.filter((room) => {
-    const matchesSearch = room.roomNo.includes(searchTerm) || room.type.toLowerCase().includes(searchTerm.toLowerCase());
+    const query = searchTerm.trim().toLowerCase();
+    const matchesSearch = String(room.roomNo || '').toLowerCase().includes(query) || String(room.type || '').toLowerCase().includes(query);
     const matchesStatus = selectedStatus === 'All' || room.status === selectedStatus;
     return matchesSearch && matchesStatus;
   });
 
   // Xona o'chirish
   const handleDelete = async (id) => {
+    if (!window.confirm('Xonani o‘chirmoqchimisiz? Bron yoki xizmat yozuvlari ulangan bo‘lsa, tizim o‘chirishni rad etadi.')) return;
     try { await api(`/rooms/${id}`, { method: 'DELETE' }); await loadRooms(); }
     catch (error) { window.alert(error.message); }
   };
@@ -63,17 +59,17 @@ const Rooms = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const typeId = roomForm.typeId || types.find((t) => t.TYPE_NAME === roomForm.type)?.ID || types[0]?.ID;
-      await api(`/rooms${editingRoom ? `/${editingRoom.id}` : ''}`, { method: editingRoom ? 'PUT' : 'POST', body: JSON.stringify({ room_number: roomForm.roomNo, type_id: Number(typeId), floor: Number(roomForm.floor), status: ({ Free: 'available', Occupied: 'occupied', Cleaning: 'cleaning' })[roomForm.status] || roomForm.status }) });
+      const typeId = types.find((t) => t.TYPE_NAME === roomForm.type)?.ID || types[0]?.ID;
+      await api(`/rooms${editingRoom ? `/${editingRoom.id}` : ''}`, { method: editingRoom ? 'PUT' : 'POST', body: JSON.stringify({ room_number: roomForm.roomNo, type_id: Number(typeId), floor: Number(roomForm.floor), status: ({ Free: 'available', Occupied: 'occupied', Cleaning: 'cleaning', Maintenance: 'maintenance' })[roomForm.status] || roomForm.status }) });
       await loadRooms(); setEditingRoom(null);
     } catch (error) { window.alert(error.message); return; }
     setIsAddModalOpen(false);
-    setRoomForm({ roomNo: '', type: 'Standard', floor: 1, price: '$80', status: 'Free' });
+    setRoomForm({ roomNo: '', type: types[0]?.TYPE_NAME || '', floor: 1, status: 'Free' });
   };
 
   const handleEditClick = (room) => {
     setEditingRoom(room);
-    setRoomForm({ ...room, typeId: room.typeId, status: ({ available: 'Free', occupied: 'Occupied', cleaning: 'Cleaning' })[String(room.status).toLowerCase()] || room.status });
+    setRoomForm({ ...room, typeId: room.typeId, status: ({ available: 'Free', occupied: 'Occupied', cleaning: 'Cleaning', maintenance: 'Maintenance' })[String(room.status).toLowerCase()] || room.status });
     setIsAddModalOpen(true);
   };
 
@@ -132,7 +128,7 @@ const Rooms = () => {
         <button
           onClick={() => {
             setEditingRoom(null);
-            setRoomForm({ roomNo: '', type: 'Standard', floor: 1, price: '$80', status: 'Free' });
+            setRoomForm({ roomNo: '', type: types[0]?.TYPE_NAME || '', floor: 1, status: 'Free' });
             setIsAddModalOpen(true);
           }}
           className="w-full md:w-auto flex items-center justify-center space-x-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl shadow-lg shadow-emerald-600/25 transition duration-200"
@@ -309,17 +305,8 @@ const Rooms = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 mb-1">Price per night</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. $120"
-                    value={roomForm.price}
-                    onChange={(e) => setRoomForm({ ...roomForm, price: e.target.value })}
-                    className={`w-full px-3.5 py-2 rounded-xl border focus:outline-none focus:border-emerald-500 ${
-                      isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                  />
+                  <label className="block text-xs font-semibold text-slate-400 mb-1">Narx (xona turidan olinadi)</label>
+                  <div className={`w-full px-3.5 py-2 rounded-xl border text-emerald-500 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>{Number(types.find((type) => type.TYPE_NAME === roomForm.type)?.BASE_PRICE || 0).toLocaleString()} UZS / tun</div>
                 </div>
               </div>
 
@@ -335,6 +322,7 @@ const Rooms = () => {
                   <option value="Free">Free</option>
                   <option value="Occupied">Occupied</option>
                   <option value="Cleaning">Cleaning</option>
+                  <option value="Maintenance">Maintenance</option>
                 </select>
               </div>
 

@@ -34,16 +34,16 @@ const AppRouter = ({ isDarkMode, toggleDarkMode }) => {
       <Route path="/register" element={<Register />} />
 
       {/* Admin marshrutlari */}
-      <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
+      <Route element={<ProtectedRoute allowedRoles={['admin', 'manager']} />}>
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<Navigate to="/admin/dashboard" replace />} />
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="bookings" element={<Bookings />} />
           <Route path="rooms" element={<Rooms />} />
           <Route path="room-types" element={<RoomTypes />} />
-          <Route path="housekeeping" element={<Housekeeping />} />
-          <Route path="services" element={<Housekeeping />} />
-          <Route path="service-orders" element={<Housekeeping />} />
+          <Route path="housekeeping" element={<Housekeeping section="cleaning" />} />
+          <Route path="services" element={<Housekeeping section="services" />} />
+          <Route path="service-orders" element={<Housekeeping section="orders" />} />
           <Route path="employees" element={<Employees />} />
           <Route path="users" element={<Users />} />
           <Route path="payments" element={<Payments />} />

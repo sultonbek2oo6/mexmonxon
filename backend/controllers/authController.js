@@ -79,8 +79,13 @@ export const login = async (req, res) => {
         password_hash: await bcrypt.hash(password, 10), id: user.ID ?? user.id
       });
     }
-    const role = user.ROLE ?? user.role ?? 'guest';
+    const role = String(user.ROLE ?? user.role ?? 'guest').trim().toLowerCase();
     const userEmail = user.EMAIL ?? user.email;
+    if (role === 'employee') return res.status(403).json({ message: 'Bu hisob xodimlar uchun. Tizimga kirish huquqi uchun menejerga murojaat qiling.' });
+    const permissionResult = role === 'admin'
+      ? await executeQuery('SELECT PERMISSION_KEY FROM MEXMONXONALAR_TIZIMI.USER_PERMISSIONS WHERE USER_ID = :id', { id: user.ID ?? user.id })
+      : { rows: [] };
+    const permissions = (permissionResult.rows || []).map((row) => row.PERMISSION_KEY ?? row.permission_key);
     const token = generateToken({ id: user.ID ?? user.id, email: userEmail, role });
     return res.json({
       message: 'Muvaffaqiyatli tizimga kirildi', token,
@@ -88,7 +93,7 @@ export const login = async (req, res) => {
         id: user.ID ?? user.id,
         first_name: user.FIRST_NAME ?? user.first_name,
         last_name: user.LAST_NAME ?? user.last_name,
-        email: userEmail, role
+        email: userEmail, role, permissions
       }
     });
   } catch (error) {

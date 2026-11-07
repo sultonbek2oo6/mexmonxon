@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+import { API_URL } from '../lib/api';
 
 const PaymentModal = ({ isOpen, onClose, itemData, isDarkMode, type = 'room' }) => {
   const [paymentMethod, setPaymentMethod] = useState('Card'); // Card, Cash, Click, Payme

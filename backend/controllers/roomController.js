@@ -1,8 +1,21 @@
 import { executeQuery } from '../config/db.js';
+import { isValidDateRange } from '../domain/bookingRules.js';
 
 // Barcha xonalar va turlarini bazadan olish
 export const getAllRooms = async (req, res) => {
   try {
+    const checkIn = String(req.query.checkIn || '');
+    const checkOut = String(req.query.checkOut || '');
+    if ((checkIn || checkOut) && !isValidDateRange(checkIn, checkOut)) {
+      return res.status(400).json({ message: 'Kirish va chiqish sanalarini to‘g‘ri tanlang.' });
+    }
+    const availabilityFilter = checkIn ? `WHERE NOT EXISTS (
+      SELECT 1 FROM MEXMONXONALAR_TIZIMI.BOOKINGS b
+      WHERE b.ROOM_ID = r.ID
+        AND LOWER(TRIM(b.STATUS)) NOT IN ('cancelled','canceled','bekor qilingan','completed','completed early')
+        AND b.CHECK_IN_DATE < TO_DATE(:checkOut, 'YYYY-MM-DD')
+        AND b.CHECK_OUT_DATE > TO_DATE(:checkIn, 'YYYY-MM-DD')
+    )` : '';
     const query = `
       SELECT r.ID, r.TYPE_ID, r.ROOM_NUMBER, r.FLOOR, r.STATUS,
              rt.TYPE_NAME, 
@@ -10,15 +23,17 @@ export const getAllRooms = async (req, res) => {
              rt.BASE_PRICE, rt.CAPACITY, rt.IMAGE_URL 
       FROM MEXMONXONALAR_TIZIMI.ROOMS r 
       JOIN MEXMONXONALAR_TIZIMI.ROOM_TYPES rt ON r.TYPE_ID = rt.ID
+      ${availabilityFilter}
+      ORDER BY r.ROOM_NUMBER
     `;
-    const result = await executeQuery(query);
+    const result = await executeQuery(query, checkIn ? { checkIn, checkOut } : {});
     
     // Natija rows yoki to'g'ridan-to'g'ri array ekanligini tekshirib yuboramiz
     const rooms = result.rows || result || [];
     res.json(rooms);
   } catch (err) {
     console.error("Xonalarni olishda xatolik tafsiloti:", err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ message: 'Xonalarni olishda server xatoligi.' });
   }
 };
 

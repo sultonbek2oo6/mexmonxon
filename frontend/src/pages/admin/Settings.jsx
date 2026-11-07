@@ -6,12 +6,8 @@ import {
   Phone, 
   Mail, 
   CreditCard, 
-  Bell, 
   Save, 
-  Sliders, 
-  CheckCircle2, 
-  Globe, 
-  ShieldCheck 
+  CheckCircle2,
 } from 'lucide-react';
 import { api } from '../../lib/api';
 
@@ -20,6 +16,9 @@ const Settings = () => {
 
   const [activeTab, setActiveTab] = useState('General');
   const [showSavedToast, setShowSavedToast] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [loadError, setLoadError] = useState('');
 
   // General & Hotel Info formasi holati
   const [generalForm, setGeneralForm] = useState({
@@ -27,7 +26,7 @@ const Settings = () => {
     address: 'Tashkent, Uzbekistan',
     phone: '+998 71 123 45 67',
     email: 'info@grandhotel.uz',
-    currency: 'USD ($)',
+    currency: 'UZS',
     timezone: 'UTC+5 (Tashkent)'
   });
 
@@ -47,31 +46,40 @@ const Settings = () => {
     newBookingNotif: true,
     cancelBookingNotif: true
   });
-  useEffect(() => {
-    api('/admin/settings').then((settings) => {
+  const loadSettings = async () => {
+    setLoading(true);
+    setLoadError('');
+    try {
+      const settings = await api('/admin/settings');
       if (settings.general && Object.keys(settings.general).length) setGeneralForm((current) => ({ ...current, ...settings.general }));
       if (settings.payment && Object.keys(settings.payment).length) setPaymentForm((current) => ({ ...current, ...settings.payment }));
       if (settings.notifications && Object.keys(settings.notifications).length) setNotifForm((current) => ({ ...current, ...settings.notifications }));
-    }).catch((error) => console.error('Settings loading failed:', error));
-  }, []);
+    } catch (error) {
+      setLoadError(error.message || 'Sozlamalarni yuklab bo‘lmadi.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { loadSettings(); }, []);
 
   // Tablar ro'yxati
   const tabs = [
     { id: 'General', label: 'General' },
-    { id: 'Hotel Info', label: 'Hotel Info' },
     { id: 'Payment', label: 'Payment' },
     { id: 'Notification', label: 'Notification' },
   ];
 
   const handleSave = async (e) => {
     e.preventDefault();
+    if (loading || loadError) return;
+    setSaving(true);
     try {
       await api('/admin/settings', { method: 'PUT', body: JSON.stringify({ general: generalForm, payment: paymentForm, notifications: notifForm }) });
-    } catch (error) { window.alert(error.message); return; }
-    setShowSavedToast(true);
-    setTimeout(() => {
-      setShowSavedToast(false);
-    }, 3000);
+      setShowSavedToast(true);
+      window.setTimeout(() => setShowSavedToast(false), 3000);
+    } catch (error) { window.alert(error.message); }
+    finally { setSaving(false); }
   };
 
   return (
@@ -94,6 +102,9 @@ const Settings = () => {
           <p className="text-slate-400 text-sm mt-1">Manage system configurations, contact info, and payment rules.</p>
         </div>
       </div>
+
+      {loadError && <div role="alert" className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-4 text-sm text-rose-400">{loadError} <button type="button" onClick={loadSettings} className="ml-2 underline">Qayta urinish</button></div>}
+      {loading && <div role="status" className="rounded-xl border border-slate-700 p-4 text-sm text-slate-400">Sozlamalar yuklanmoqda…</div>}
 
       {/* Settings Container */}
       <div className={`rounded-2xl border overflow-hidden ${
@@ -123,7 +134,7 @@ const Settings = () => {
         <div className="p-6 sm:p-8 max-w-3xl">
           
           {/* GENERAL & HOTEL INFO TAB */}
-          {(activeTab === 'General' || activeTab === 'Hotel Info') && (
+          {activeTab === 'General' && (
             <form onSubmit={handleSave} className="space-y-5">
               
               {/* Hotel Name */}
@@ -198,10 +209,11 @@ const Settings = () => {
               <div className="pt-4">
                 <button
                   type="submit"
+                  disabled={saving || loading || Boolean(loadError)}
                   className="w-full flex items-center justify-center space-x-2 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl shadow-lg shadow-emerald-600/25 transition duration-200"
                 >
                   <Save className="w-4 h-4" />
-                  <span>Save Changes</span>
+                    <span>{saving ? 'Saqlanmoqda…' : 'Save Changes'}</span>
                 </button>
               </div>
 
@@ -213,7 +225,8 @@ const Settings = () => {
             <form onSubmit={handleSave} className="space-y-6">
               
               <div>
-                <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">Accepted Payment Gateways</h3>
+                <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">To‘lov usullari bo‘yicha afzalliklar</h3>
+                <p className="mb-3 text-xs text-amber-400">Bu belgilashlar hozircha ma’lumot sifatida saqlanadi; karta provayderlari va avtomatik soliq hisoblash tizimga ulanmagan.</p>
                 <div className="space-y-3">
                   {[
                     { id: 'acceptVisa', label: 'Visa Card' },
@@ -243,7 +256,10 @@ const Settings = () => {
                 }`}>
                   <CreditCard className="w-4 h-4 text-slate-400 shrink-0" />
                   <input
-                    type="text"
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.01"
                     value={paymentForm.taxRate}
                     onChange={(e) => setPaymentForm({ ...paymentForm, taxRate: e.target.value })}
                     className="bg-transparent text-sm focus:outline-none w-full font-mono"
@@ -255,10 +271,11 @@ const Settings = () => {
               <div className="pt-2">
                 <button
                   type="submit"
+                  disabled={saving || loading || Boolean(loadError)}
                   className="w-full flex items-center justify-center space-x-2 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl shadow-lg shadow-emerald-600/25 transition duration-200"
                 >
                   <Save className="w-4 h-4" />
-                  <span>Save Payment Settings</span>
+                  <span>{saving ? 'Saqlanmoqda…' : 'Save Payment Settings'}</span>
                 </button>
               </div>
 
@@ -270,7 +287,8 @@ const Settings = () => {
             <form onSubmit={handleSave} className="space-y-6">
               
               <div>
-                <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">Notification Preferences</h3>
+                <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">Bildirishnoma afzalliklari</h3>
+                <p className="mb-3 text-xs text-amber-400">Email va SMS jo‘natish xizmati ulanmaguncha bu tanlovlar xabar yubormaydi.</p>
                 <div className="space-y-3">
                   {[
                     { id: 'emailAlerts', label: 'Email Notifications', desc: 'Receive email alerts for key updates' },
@@ -300,10 +318,11 @@ const Settings = () => {
               <div className="pt-2">
                 <button
                   type="submit"
+                  disabled={saving || loading || Boolean(loadError)}
                   className="w-full flex items-center justify-center space-x-2 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl shadow-lg shadow-emerald-600/25 transition duration-200"
                 >
                   <Save className="w-4 h-4" />
-                  <span>Save Notification Preferences</span>
+                  <span>{saving ? 'Saqlanmoqda…' : 'Save Notification Preferences'}</span>
                 </button>
               </div>
 

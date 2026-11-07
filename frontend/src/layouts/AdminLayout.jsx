@@ -20,25 +20,62 @@ import {
   Menu, 
   X,
   Search,
-  Bell
+  Bell,
+  ShieldAlert
 } from 'lucide-react';
 import { Check, X as CloseIcon } from 'lucide-react';
 import { api } from '../lib/api';
 
+const readStorageJson = (key, fallback) => {
+  try { return JSON.parse(localStorage.getItem(key) || 'null') ?? fallback; }
+  catch { return fallback; }
+};
+
 const AdminLayout = () => {
-  const [isDarkMode, setIsDarkMode] = useState(true);
+  const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('adminDarkMode') !== 'false');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [bookingNotifications, setBookingNotifications] = useState([]);
+  const [role, setRole] = useState(String(localStorage.getItem('role') || '').toLowerCase());
+  const [permissions, setPermissions] = useState(() => {
+    const stored = readStorageJson('permissions', []);
+    return Array.isArray(stored) ? stored : [];
+  });
+  const [currentUser, setCurrentUser] = useState(() => readStorageJson('user', {}));
+  const [adminSearch, setAdminSearch] = useState('');
   const navigate = useNavigate();
   const location = useLocation(); // Har bir router sahifasi o'zgarganda animatsiyani tetiklash uchun
 
-  const toggleDarkMode = () => setIsDarkMode((prev) => !prev);
+  const toggleDarkMode = () => setIsDarkMode((prev) => {
+    const next = !prev;
+    localStorage.setItem('adminDarkMode', String(next));
+    return next;
+  });
   const toggleSidebar = () => setIsSidebarOpen((prev) => !prev);
+  const syncSession = useCallback(async () => {
+    try {
+      const { user } = await api('/profile');
+      const currentRole = String(user?.role || 'guest').toLowerCase();
+      const currentPermissions = user?.permissions || [];
+      setRole(currentRole);
+      setPermissions(currentPermissions);
+      setCurrentUser(user || {});
+      localStorage.setItem('role', currentRole);
+      localStorage.setItem('user', JSON.stringify(user));
+      localStorage.setItem('permissions', JSON.stringify(currentPermissions));
+      if (!['admin', 'manager'].includes(currentRole)) navigate('/client/home', { replace: true });
+    } catch (error) { console.error('Session role refresh failed:', error); }
+  }, [navigate]);
+  useEffect(() => {
+    syncSession();
+    const timer = window.setInterval(syncSession, 30000);
+    return () => window.clearInterval(timer);
+  }, [syncSession]);
   const loadNotifications = useCallback(async () => {
+    if (role !== 'manager' && !permissions.includes('bookings')) return;
     try { setBookingNotifications(await api('/admin/notifications/bookings')); }
     catch (error) { console.error('Booking notifications loading failed:', error); }
-  }, []);
+  }, [role, permissions]);
   useEffect(() => {
     loadNotifications();
     const timer = window.setInterval(loadNotifications, 10000);
@@ -52,24 +89,31 @@ const AdminLayout = () => {
   };
 
   const handleLogout = () => {
-    localStorage.clear();
+    ['token', 'role', 'user', 'permissions'].forEach((key) => localStorage.removeItem(key));
     navigate('/login');
   };
 
   const navItems = [
-    { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
-    { name: 'Bookings', path: '/admin/bookings', icon: CalendarCheck },
-    { name: 'Rooms', path: '/admin/rooms', icon: BedDouble },
-    { name: 'Room Types', path: '/admin/room-types', icon: Layers },
-    { name: 'Users', path: '/admin/users', icon: Users },
-    { name: 'Employees', path: '/admin/employees', icon: UserCheck },
-    { name: 'Payments', path: '/admin/payments', icon: CreditCard },
-    { name: 'Housekeeping', path: '/admin/housekeeping', icon: Sparkles },
-    { name: 'Services', path: '/admin/services', icon: ConciergeBell },
-    { name: 'Service Orders', path: '/admin/service-orders', icon: ClipboardList },
-    { name: 'Reports', path: '/admin/reports', icon: BarChart3 },
-    { name: 'Settings', path: '/admin/settings', icon: Settings },
-  ];
+    { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard, permission: 'dashboard' },
+    { name: 'Bookings', path: '/admin/bookings', icon: CalendarCheck, permission: 'bookings' },
+    { name: 'Rooms', path: '/admin/rooms', icon: BedDouble, permission: 'rooms' },
+    { name: 'Room Types', path: '/admin/room-types', icon: Layers, permission: 'roomTypes' },
+    { name: 'Foydalanuvchilar', path: '/admin/users', icon: Users, permission: 'users' },
+    { name: 'Employees', path: '/admin/employees', icon: UserCheck, permission: 'employees' },
+    { name: 'Payments', path: '/admin/payments', icon: CreditCard, permission: 'payments' },
+    { name: 'Housekeeping', path: '/admin/housekeeping', icon: Sparkles, permission: 'housekeeping' },
+    { name: 'Services', path: '/admin/services', icon: ConciergeBell, permission: 'services' },
+    { name: 'Service Orders', path: '/admin/service-orders', icon: ClipboardList, permission: 'services' },
+    { name: 'Reports', path: '/admin/reports', icon: BarChart3, permission: 'reports' },
+    { name: 'Settings', path: '/admin/settings', icon: Settings, permission: 'settings' },
+  ].filter((item) => role === 'manager' || permissions.includes(item.permission));
+  const visibleNavItems = navItems.filter((item) => item.name.toLowerCase().includes(adminSearch.trim().toLowerCase()));
+
+  useEffect(() => {
+    if (!navItems.some((item) => item.path === location.pathname) && navItems.length) {
+      navigate(navItems[0].path, { replace: true });
+    }
+  }, [location.pathname, navigate, role, permissions]);
 
   return (
     <div className={`min-h-screen transition-colors duration-300 ${isDarkMode ? 'bg-[#0b1320] text-slate-100' : 'bg-slate-50 text-slate-800'}`}>
@@ -102,7 +146,7 @@ const AdminLayout = () => {
 
           {/* Navigation Links */}
           <nav className="p-4 space-y-1 overflow-y-auto max-h-[calc(100vh-140px)] custom-scrollbar">
-            {navItems.map((item) => {
+            {visibleNavItems.map((item) => {
               const Icon = item.icon;
               return (
                 <NavLink
@@ -156,7 +200,9 @@ const AdminLayout = () => {
               <Search className="w-4 h-4 text-slate-400" />
               <input 
                 type="text" 
-                placeholder="Search..." 
+                placeholder="Bo‘lim izlash..."
+                value={adminSearch}
+                onChange={(event) => setAdminSearch(event.target.value)}
                 className="bg-transparent text-sm focus:outline-none w-48 lg:w-64"
               />
             </div>
@@ -176,7 +222,7 @@ const AdminLayout = () => {
             </button>
 
             {/* Notification Bell */}
-            <div className="relative">
+            {(role === 'manager' || permissions.includes('bookings')) && <div className="relative">
               <button
                 onClick={() => setIsNotificationsOpen((open) => !open)}
                 aria-label={`Booking notifications: ${bookingNotifications.length} pending`}
@@ -209,7 +255,7 @@ const AdminLayout = () => {
                   </div>
                 </div>
               )}
-            </div>
+            </div>}
 
             {/* Admin Profile */}
             <div className="flex items-center space-x-3 pl-2 border-l border-slate-700/50">
@@ -219,8 +265,8 @@ const AdminLayout = () => {
                 className="w-9 h-9 rounded-full object-cover border-2 border-emerald-500/50"
               />
               <div className="hidden md:block text-left">
-                <p className={`text-sm font-bold leading-none ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>Admin</p>
-                <p className="text-xs text-slate-400 mt-1">Administrator</p>
+                <p className={`text-sm font-bold leading-none ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>{currentUser?.first_name || (role === 'manager' ? 'Menejer' : 'Admin')}</p>
+                <p className="text-xs text-slate-400 mt-1">{role === 'manager' ? 'Mehmonxona menejeri' : 'Admin'}</p>
               </div>
             </div>
           </div>
@@ -236,7 +282,9 @@ const AdminLayout = () => {
               exit={{ opacity: 0, y: -12 }}
               transition={{ duration: 0.35, ease: 'easeOut' }}
             >
-              <Outlet context={{ isDarkMode }} />
+              {role === 'admin' && navItems.length === 0
+                ? <div className={`max-w-xl mx-auto mt-12 rounded-2xl border p-8 text-center ${isDarkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'}`}><ShieldAlert className="w-10 h-10 mx-auto mb-3 text-amber-400" /><h1 className="text-xl font-bold">Bo‘lim ruxsatlari berilmagan</h1><p className="mt-2 text-sm text-slate-400">Menejer sizga kamida bitta bo‘lim huquqini berishi kerak. O‘zgarishlar avtomatik yangilanadi.</p></div>
+                : <Outlet context={{ isDarkMode, role }} />}
             </motion.div>
           </AnimatePresence>
         </main>

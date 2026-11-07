@@ -23,7 +23,7 @@ const RoomTypes = () => {
   // Form holati
   const [form, setForm] = useState({
     name: '',
-    price: '$100',
+    price: '',
     capacity: 2,
     size: '30 m²',
   });
@@ -35,6 +35,7 @@ const RoomTypes = () => {
 
   // O'chirish
   const handleDelete = async (id) => {
+    if (!window.confirm('Xona turini o‘chirmoqchimisiz? Ishlatilayotgan tur bo‘lsa, tizim o‘chirishni rad etadi.')) return;
     try { await api(`/admin/room-types/${id}`, { method: 'DELETE' }); await loadTypes(); }
     catch (error) { window.alert(error.message); }
   };
@@ -48,7 +49,7 @@ const RoomTypes = () => {
       await loadTypes(); setEditingType(null);
     } catch (error) { window.alert(error.message); return; }
     setIsAddModalOpen(false);
-    setForm({ name: '', price: '$100', capacity: 2, size: '30 m²' });
+    setForm({ name: '', price: '', capacity: 2, size: '30 m²' });
   };
 
   const handleEditClick = (item) => {
@@ -93,7 +94,7 @@ const RoomTypes = () => {
         <button
           onClick={() => {
             setEditingType(null);
-            setForm({ name: '', price: '$100', capacity: 2, size: '30 m²' });
+            setForm({ name: '', price: '', capacity: 2, size: '30 m²' });
             setIsAddModalOpen(true);
           }}
           className="w-full md:w-auto flex items-center justify-center space-x-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl shadow-lg shadow-emerald-600/25 transition duration-200"
@@ -240,9 +241,11 @@ const RoomTypes = () => {
                 <div>
                   <label className="block text-xs font-semibold text-slate-400 mb-1">Price per night</label>
                   <input
-                    type="text"
+                    type="number"
                     required
-                    placeholder="e.g. $150"
+                    min="0"
+                    step="0.01"
+                    placeholder="Masalan: 850000"
                     value={form.price}
                     onChange={(e) => setForm({ ...form, price: e.target.value })}
                     className={`w-full px-3.5 py-2 rounded-xl border focus:outline-none focus:border-emerald-500 ${
@@ -268,7 +271,7 @@ const RoomTypes = () => {
 
               <div>
                 <label className="block text-xs font-semibold text-slate-400 mb-1">Description / Size</label>
-                <input
+                  <input
                   type="text"
                   required
                   placeholder="e.g. 40 m²"

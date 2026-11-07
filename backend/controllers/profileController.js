@@ -32,7 +32,12 @@ export const getProfile = async (req, res) => {
     const result = await executeQuery(SELECT_PROFILE, { id: req.user.id });
     const row = result.rows[0];
     if (!row) return res.status(404).json({ message: 'Foydalanuvchi topilmadi.' });
-    return res.json({ user: mapUser(row) });
+    const user = mapUser(row);
+    if (user.role.toLowerCase() === 'admin') {
+      const permissionResult = await executeQuery('SELECT PERMISSION_KEY FROM MEXMONXONALAR_TIZIMI.USER_PERMISSIONS WHERE USER_ID = :id', { id: req.user.id });
+      user.permissions = (permissionResult.rows || []).map((permission) => permission.PERMISSION_KEY ?? permission.permission_key);
+    } else user.permissions = [];
+    return res.json({ user });
   } catch (error) {
     console.error('Get profile xatolik:', error);
     return res.status(500).json({ message: publicMessage });
@@ -59,7 +64,7 @@ export const updateProfile = async (req, res) => {
   if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
     return res.status(400).json({ message: 'To‘g‘ri email manzil kiriting.' });
   }
-  if (birthDate && !/^\d{4}-\d{2}-\d{2}$/.test(birthDate)) {
+  if (birthDate && (!/^\d{4}-\d{2}-\d{2}$/.test(birthDate) || Number.isNaN(Date.parse(`${birthDate}T00:00:00Z`)) || new Date(`${birthDate}T00:00:00Z`).toISOString().slice(0, 10) !== birthDate)) {
     return res.status(400).json({ message: 'Tug‘ilgan sana noto‘g‘ri formatda.' });
   }
   if (password) {

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+import { API_URL } from '../../lib/api';
 
 const getServiceScheduleDefaults = () => {
   const date = new Date(Date.now() + 60 * 60 * 1000);
@@ -71,7 +70,7 @@ const Services = () => {
     ]).then(([services, userBookings]) => {
       setServicesList(services);
       const activeBookings = userBookings.filter((booking) =>
-        !['cancelled', 'canceled', 'bekor qilingan'].includes(String(booking.STATUS || booking.status || '').trim().toLowerCase())
+        ['confirmed', 'checked-in', 'checked in'].includes(String(booking.STATUS || booking.status || '').trim().toLowerCase())
       );
       setBookings(activeBookings);
       if (activeBookings.length) setSelectedBookingId(String(activeBookings[0].ID || activeBookings[0].id));

@@ -11,83 +11,36 @@ const Bookings = () => {
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [roomOptions, setRoomOptions] = useState([]);
+  const [guestOptions, setGuestOptions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
 
-  // Initial Bookings Data (4-rasmdagi ma'lumotlar bilan)
   const [bookings, setBookings] = useState([]);
   const loadBookings = async () => {
-    try { const data = await api('/admin/bookings'); setBookings(data.map((b) => ({ id: b.ID, guestName: b.GUEST_NAME, room: b.ROOM_NUMBER, checkIn: b.CHECK_IN_DATE, checkOut: b.CHECK_OUT_DATE, status: ({ pending: 'Pending', confirmed: 'Confirmed', 'checked-in': 'Checked-in', cancelled: 'Cancelled', completed: 'Completed' })[String(b.STATUS || '').toLowerCase()] || b.STATUS, price: `${Number(b.TOTAL_AMOUNT || 0).toLocaleString()} UZS`, guestsCount: '—' }))); }
-    catch (error) { console.error('Bookings loading failed:', error); }
+    setLoading(true);
+    setLoadError('');
+    try { const data = await api('/admin/bookings'); setBookings(data.map((b) => ({ id: b.ID, guestName: b.GUEST_NAME || '', room: String(b.ROOM_NUMBER || ''), checkIn: b.CHECK_IN_DATE, checkOut: b.CHECK_OUT_DATE, status: ({ pending: 'Pending', confirmed: 'Confirmed', 'checked-in': 'Checked-in', cancelled: 'Cancelled', completed: 'Completed' })[String(b.STATUS || '').toLowerCase()] || b.STATUS, price: `${Number(b.TOTAL_AMOUNT || 0).toLocaleString()} UZS`, guestsCount: '—' }))); }
+    catch (error) { setLoadError(error.message || 'Bronlarni yuklab bo‘lmadi.'); }
+    finally { setLoading(false); }
   };
   useEffect(() => {
     loadBookings();
     api('/rooms').then((data) => { const numbers = data.map((room) => room.ROOM_NUMBER); setRoomOptions(numbers); if (numbers.length) setNewBooking((current) => ({ ...current, room: numbers.includes(current.room) ? current.room : numbers[0] })); }).catch((error) => console.error('Rooms loading failed:', error));
+    api('/admin/booking-guests').then(setGuestOptions).catch((error) => console.error('Booking guests loading failed:', error));
   }, []);
-  /*
-  const [bookings] = useState([
-    {
-      id: 'BK001',
-      guestName: 'Ali Karimov',
-      room: '101',
-      checkIn: 'Apr 28, 2025',
-      checkOut: 'Apr 28, 2025',
-      status: 'Confirmed',
-      price: '$120',
-      guestsCount: '2 Adults'
-    },
-    {
-      id: 'BK002',
-      guestName: 'John Smith',
-      room: '202',
-      checkIn: 'Apr 26, 2025',
-      checkOut: 'Apr 30, 2025',
-      status: 'Checked-in',
-      price: '$320',
-      guestsCount: '1 Adult'
-    },
-    {
-      id: 'BK003',
-      guestName: 'Aziza Aliyeva',
-      room: '305',
-      checkIn: 'Apr 27, 2025',
-      checkOut: 'Apr 29, 2025',
-      status: 'Pending',
-      price: '$180',
-      guestsCount: '2 Adults, 1 Child'
-    },
-    {
-      id: 'BK004',
-      guestName: 'Michael Brown',
-      room: '404',
-      checkIn: 'Apr 28, 2025',
-      checkOut: 'May 1, 2025',
-      status: 'Confirmed',
-      price: '$250',
-      guestsCount: '2 Adults'
-    },
-    {
-      id: 'BK005',
-      guestName: 'Emily Davis',
-      room: '102',
-      checkIn: 'Apr 29, 2025',
-      checkOut: 'May 2, 2025',
-      status: 'Pending',
-      price: '$160',
-      guestsCount: '1 Adult'
-    }
-  ]); */
-
   // Yangi bron formasi uchun state
   const [newBooking, setNewBooking] = useState({
-    guestName: '',
+    guestId: '',
     room: '101',
     checkIn: '',
     checkOut: '',
     status: 'Confirmed',
-    price: '$120'
+    price: ''
   });
 
   // O'chirish funksiyasi
   const handleDelete = async (id) => {
+    if (!window.confirm('Bronni bekor qilmoqchimisiz? Bron tarixi saqlanadi.')) return;
     try { await api(`/admin/bookings/${id}`, { method: 'DELETE' }); await loadBookings(); }
     catch (error) { window.alert(error.message); }
   };
@@ -99,28 +52,29 @@ const Bookings = () => {
   // Yangi bron qo'shish
   const handleAddBooking = async (e) => {
     e.preventDefault();
-    if (!newBooking.guestName || !newBooking.checkIn || !newBooking.checkOut) return;
+    if (!newBooking.guestId || !newBooking.checkIn || !newBooking.checkOut) return;
 
     try {
-      await api('/admin/bookings', { method: 'POST', body: JSON.stringify({ guest_name: newBooking.guestName, room_number: newBooking.room, check_in: newBooking.checkIn, check_out: newBooking.checkOut, total_amount: Number(String(newBooking.price).replace(/[^\d.]/g, '')), status: newBooking.status }) });
+      await api('/admin/bookings', { method: 'POST', body: JSON.stringify({ guest_id: Number(newBooking.guestId), room_number: newBooking.room, check_in: newBooking.checkIn, check_out: newBooking.checkOut, total_amount: Number(newBooking.price), status: newBooking.status }) });
       await loadBookings();
     } catch (error) { window.alert(error.message); return; }
     setIsAddModalOpen(false);
     setNewBooking({
-      guestName: '',
+      guestId: '',
       room: '101',
       checkIn: '',
       checkOut: '',
       status: 'Confirmed',
-      price: '$120'
+      price: ''
     });
   };
 
   // Filtr va Qidiruv
   const filteredBookings = bookings.filter(b => {
-    const matchesSearch = b.guestName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          b.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          b.room.includes(searchTerm);
+    const query = searchTerm.trim().toLowerCase();
+    const matchesSearch = String(b.guestName || '').toLowerCase().includes(query) ||
+                          String(b.id || '').toLowerCase().includes(query) ||
+                          String(b.room || '').toLowerCase().includes(query);
     const matchesStatus = selectedStatus === 'All Status' || b.status === selectedStatus;
     return matchesSearch && matchesStatus;
   });
@@ -188,6 +142,8 @@ const Bookings = () => {
               <option value="Confirmed" className={isDarkMode ? 'bg-slate-900 text-white' : 'bg-white text-slate-800'}>Confirmed</option>
               <option value="Checked-in" className={isDarkMode ? 'bg-slate-900 text-white' : 'bg-white text-slate-800'}>Checked-in</option>
               <option value="Pending" className={isDarkMode ? 'bg-slate-900 text-white' : 'bg-white text-slate-800'}>Pending</option>
+              <option value="Completed" className={isDarkMode ? 'bg-slate-900 text-white' : 'bg-white text-slate-800'}>Completed</option>
+              <option value="Cancelled" className={isDarkMode ? 'bg-slate-900 text-white' : 'bg-white text-slate-800'}>Cancelled</option>
             </select>
           </div>
         </div>
@@ -224,7 +180,7 @@ const Bookings = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/40">
-              {filteredBookings.length > 0 ? (
+              {loading ? <tr><td colSpan="7" className="py-8 text-center text-slate-400">Yuklanmoqda…</td></tr> : loadError ? <tr><td colSpan="7" className="py-8 text-center text-rose-400">{loadError} <button onClick={loadBookings} className="underline">Qayta urinish</button></td></tr> : filteredBookings.length > 0 ? (
                 filteredBookings.map((item) => (
                   <tr key={item.id} className="hover:bg-slate-800/20 transition duration-150">
                     <td className="py-4 px-6 font-semibold text-emerald-500">{item.id}</td>
@@ -241,7 +197,8 @@ const Bookings = () => {
                       <div className="flex items-center justify-end space-x-2">
                         {String(item.status).toLowerCase() === 'pending' && <button onClick={() => handleStatusChange(item.id, 'confirmed')} className="p-1.5 rounded-lg text-emerald-500 hover:bg-emerald-500/10" title="Confirm booking"><CheckCircle className="w-4 h-4" /></button>}
                         {String(item.status).toLowerCase() === 'pending' && <button onClick={() => handleStatusChange(item.id, 'cancelled')} className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-500/10" title="Reject booking"><XCircle className="w-4 h-4" /></button>}
-                        {['confirmed', 'checked-in'].includes(String(item.status).toLowerCase()) && <button onClick={() => handleStatusChange(item.id, 'completed')} className="px-2 py-1 rounded-lg text-xs font-semibold text-amber-600 hover:bg-amber-500/10" title="Mehmon erta chiqdi — xonani bo‘shatish">Bo‘shatish</button>}
+                        {String(item.status).toLowerCase() === 'confirmed' && <button onClick={() => handleStatusChange(item.id, 'checked-in')} className="px-2 py-1 rounded-lg text-xs font-semibold text-blue-400 hover:bg-blue-500/10">Mehmon kirdi</button>}
+                        {String(item.status).toLowerCase() === 'checked-in' && <button onClick={() => handleStatusChange(item.id, 'completed')} className="px-2 py-1 rounded-lg text-xs font-semibold text-amber-600 hover:bg-amber-500/10" title="Bronni yakunlash va xonani bo‘shatish">Mehmon chiqdi</button>}
                         <button
                           onClick={() => setSelectedBooking(item)}
                           className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-400 hover:bg-slate-800/40 transition"
@@ -301,7 +258,8 @@ const Bookings = () => {
               <div className="flex items-center justify-end space-x-2 pt-1">
                 {String(item.status).toLowerCase() === 'pending' && <button onClick={() => handleStatusChange(item.id, 'confirmed')} className="flex items-center space-x-1 px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 text-xs font-semibold border border-emerald-500/20"><CheckCircle className="w-3.5 h-3.5" /><span>Tasdiqlash</span></button>}
                 {String(item.status).toLowerCase() === 'pending' && <button onClick={() => handleStatusChange(item.id, 'cancelled')} className="flex items-center space-x-1 px-3 py-1.5 rounded-lg bg-rose-500/10 text-rose-400 text-xs font-semibold border border-rose-500/20"><XCircle className="w-3.5 h-3.5" /><span>Rad etish</span></button>}
-                {['confirmed', 'checked-in'].includes(String(item.status).toLowerCase()) && <button onClick={() => handleStatusChange(item.id, 'completed')} className="px-3 py-1.5 rounded-lg bg-amber-500/10 text-amber-600 text-xs font-semibold border border-amber-500/20">Erta chiqdi · xonani bo‘shatish</button>}
+                {String(item.status).toLowerCase() === 'confirmed' && <button onClick={() => handleStatusChange(item.id, 'checked-in')} className="px-3 py-1.5 rounded-lg bg-blue-500/10 text-blue-400 text-xs font-semibold border border-blue-500/20">Mehmon kirdi</button>}
+                {String(item.status).toLowerCase() === 'checked-in' && <button onClick={() => handleStatusChange(item.id, 'completed')} className="px-3 py-1.5 rounded-lg bg-amber-500/10 text-amber-600 text-xs font-semibold border border-amber-500/20">Mehmon chiqdi</button>}
                 <button
                   onClick={() => setSelectedBooking(item)}
                   className="flex items-center space-x-1 px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 text-xs font-semibold border border-emerald-500/20"
@@ -399,17 +357,11 @@ const Bookings = () => {
 
             <form onSubmit={handleAddBooking} className="space-y-4 py-4 text-sm">
               <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1">Guest Name</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. John Doe"
-                  value={newBooking.guestName}
-                  onChange={(e) => setNewBooking({ ...newBooking, guestName: e.target.value })}
-                  className={`w-full px-3.5 py-2 rounded-xl border focus:outline-none focus:border-emerald-500 ${
-                    isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
-                />
+                <label className="block text-xs font-semibold text-slate-400 mb-1">Mehmon</label>
+                <select required value={newBooking.guestId} onChange={(e) => setNewBooking({ ...newBooking, guestId: e.target.value })} className={`w-full px-3.5 py-2 rounded-xl border focus:outline-none focus:border-emerald-500 ${isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}>
+                  <option value="">Mehmonni tanlang</option>
+                  {guestOptions.map((guest) => <option key={guest.ID} value={guest.ID}>{guest.FIRST_NAME} {guest.LAST_NAME} · {guest.EMAIL}</option>)}
+                </select>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -436,7 +388,6 @@ const Bookings = () => {
                     }`}
                   >
                     <option value="Confirmed">Confirmed</option>
-                    <option value="Checked-in">Checked-in</option>
                     <option value="Pending">Pending</option>
                   </select>
                 </div>
@@ -470,6 +421,11 @@ const Bookings = () => {
                 </div>
               </div>
 
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 mb-1">Jami summa (UZS)</label>
+                <input type="number" min="1" step="1" required value={newBooking.price} onChange={(e) => setNewBooking({ ...newBooking, price: e.target.value })} className={`w-full px-3.5 py-2 rounded-xl border focus:outline-none focus:border-emerald-500 ${isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`} />
+              </div>
+
               <div className="pt-3 flex space-x-3">
                 <button
                   type="button"
@@ -480,9 +436,10 @@ const Bookings = () => {
                 </button>
                 <button
                   type="submit"
-                  className="w-1/2 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl shadow-lg shadow-emerald-600/30 transition"
+                  disabled={!guestOptions.length || !roomOptions.length}
+                  className="w-1/2 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50 text-white font-semibold rounded-xl shadow-lg shadow-emerald-600/30 transition"
                 >
-                  Save Booking
+                  {guestOptions.length && roomOptions.length ? 'Save Booking' : 'Mehmon yoki xona mavjud emas'}
                 </button>
               </div>
             </form>

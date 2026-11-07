@@ -1,20 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useOutletContext } from 'react-router-dom';
+import { API_URL } from '../../lib/api';
+
+const localDate = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 
 const Home = () => {
   // ClientLayout'dan rejim holatini olamiz
   const { isDarkMode } = useOutletContext();
   const navigate = useNavigate();
 
-  const [checkIn, setCheckIn] = useState('2025-04-26');
-  const [checkOut, setCheckOut] = useState('2025-04-28');
+  const [checkIn, setCheckIn] = useState(() => localDate(new Date(Date.now() + 86400000)));
+  const [checkOut, setCheckOut] = useState(() => localDate(new Date(Date.now() + 3 * 86400000)));
   const [guests, setGuests] = useState('2 katta, 0 bola');
 
-  // Xizmat buyurtma qilish modali uchun state'lar
-  const [selectedService, setSelectedService] = useState(null);
-  const [roomNumber, setRoomNumber] = useState('');
-  const [note, setNote] = useState('');
-  const [isSuccess, setIsSuccess] = useState(false);
 
   // Bazadan keladigan xonalar ro'yxati va yuklanish holati
   const [rooms, setRooms] = useState([]);
@@ -22,7 +20,7 @@ const Home = () => {
 
   // Backenddan xonalarni bazadan tortib kelish
   useEffect(() => {
-    fetch('http://localhost:5001/api/rooms')
+    fetch(`${API_URL}/rooms`)
       .then((res) => res.json())
       .then((data) => {
         const formattedRooms = (data.rows || data).map((room) => ({
@@ -31,7 +29,7 @@ const Home = () => {
           capacity: `${room.CAPACITY || room.capacity || 2} mehmon`,
           size: room.DESCRIPTION || room.description || '30 m²',
           price: `${Number(room.BASE_PRICE || room.base_price || 0).toLocaleString()} UZS`,
-          badge: room.STATUS === 'available' ? 'Mavjud' : 'Band',
+          badge: ['available', 'free', 'clean'].includes(String(room.STATUS || room.status || '').trim().toLowerCase()) ? 'Mavjud' : 'Band',
           rating: 4.8,
           // ROOM_TYPES jadvalidagi IMAGE_URL dan olinmoqda
           image: room.IMAGE_URL || room.image_url || 'https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&q=80&w=600'
@@ -105,18 +103,6 @@ const Home = () => {
     navigate('/client/rooms', { state: { checkIn, checkOut, guests } });
   };
 
-  // Xizmatni yuborish
-  const handleOrderService = (e) => {
-    e.preventDefault();
-    setIsSuccess(true);
-    setTimeout(() => {
-      setSelectedService(null);
-      setIsSuccess(false);
-      setRoomNumber('');
-      setNote('');
-    }, 2000);
-  };
-
   return (
     <div className={`relative transition-colors duration-500 ${isDarkMode ? 'text-slate-100' : 'text-slate-800'}`}>
       
@@ -170,7 +156,8 @@ const Home = () => {
                   Kirish sanasi
                 </span>
                 <input 
-                  type="text" 
+                  type="date"
+                  min={localDate(new Date())}
                   value={checkIn} 
                   onChange={(e) => setCheckIn(e.target.value)}
                   className={`text-sm font-bold bg-transparent focus:outline-none ${isDarkMode ? 'text-white' : 'text-slate-800'}`}
@@ -189,7 +176,8 @@ const Home = () => {
                   Chiqish sanasi
                 </span>
                 <input 
-                  type="text" 
+                  type="date"
+                  min={checkIn || localDate(new Date())}
                   value={checkOut} 
                   onChange={(e) => setCheckOut(e.target.value)}
                   className={`text-sm font-bold bg-transparent focus:outline-none ${isDarkMode ? 'text-white' : 'text-slate-800'}`}
@@ -319,9 +307,10 @@ const Home = () => {
 
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3 sm:gap-4">
           {services.map((service) => (
-            <div 
+            <button
               key={service.id} 
-              onClick={() => setSelectedService(service)}
+              type="button"
+              onClick={() => navigate('/client/services')}
               className={`p-3 sm:p-4.5 rounded-2xl sm:rounded-3xl border transition-all duration-300 flex items-center gap-2.5 sm:gap-3.5 cursor-pointer hover:shadow-lg transform hover:-translate-y-1 active:scale-[0.98] ${
                 isDarkMode 
                   ? 'bg-slate-800/40 backdrop-blur-md border-slate-700/60 hover:border-teal-500/40' 
@@ -343,100 +332,10 @@ const Home = () => {
                   {service.desc}
                 </span>
               </div>
-            </div>
+            </button>
           ))}
         </div>
       </section>
-
-      {/* SERVICE MODAL OYNASI */}
-      {selectedService && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-opacity">
-          <div className={`w-full max-w-md p-6 rounded-3xl shadow-2xl border transition-all ${
-            isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-800'
-          }`}>
-            <div className={`flex items-center justify-between border-b pb-4 mb-5 ${isDarkMode ? 'border-slate-800' : 'border-slate-100'}`}>
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-teal-500/10 border border-teal-500/20">
-                  {selectedService.icon}
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold">{selectedService.title}</h3>
-                  <p className="text-xs text-teal-500 font-medium">{selectedService.desc}</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setSelectedService(null)}
-                className={`p-1.5 rounded-xl hover:bg-slate-500/10 ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}
-              >
-                ✕
-              </button>
-            </div>
-
-            {isSuccess ? (
-              <div className="text-center py-8 space-y-3">
-                <div className="w-16 h-16 bg-emerald-500/20 text-emerald-500 border border-emerald-500/40 rounded-full flex items-center justify-center mx-auto text-2xl font-bold">
-                  ✓
-                </div>
-                <h4 className="text-lg font-bold">So'rovingiz qabul qilindi!</h4>
-                <p className={`text-xs ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                  Xodimlarimiz tez orada xonangiz bilan bog'lanishadi.
-                </p>
-              </div>
-            ) : (
-              <form onSubmit={handleOrderService} className="space-y-4">
-                <div>
-                  <label className={`block text-[11px] font-bold uppercase tracking-wider mb-1 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                    Xona raqamingiz
-                  </label>
-                  <input
-                    required
-                    type="text"
-                    value={roomNumber}
-                    onChange={(e) => setRoomNumber(e.target.value)}
-                    placeholder="Masalan: 204-xona"
-                    className={`w-full border rounded-xl p-3 text-sm focus:outline-none focus:border-teal-500 ${
-                      isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                  />
-                </div>
-
-                <div>
-                  <label className={`block text-[11px] font-bold uppercase tracking-wider mb-1 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                    Qo'shimcha izoh yoki vaqt (Ixtiyoriy)
-                  </label>
-                  <textarea
-                    rows="3"
-                    value={note}
-                    onChange={(e) => setNote(e.target.value)}
-                    placeholder="Masalan: Soat 14:00 da tayyor bo'lsin..."
-                    className={`w-full border rounded-xl p-3 text-sm focus:outline-none focus:border-teal-500 ${
-                      isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                    }`}
-                  ></textarea>
-                </div>
-
-                <div className="flex gap-3 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedService(null)}
-                    className={`w-1/2 py-3 rounded-2xl text-xs font-bold border transition ${
-                      isDarkMode ? 'border-slate-700 hover:bg-slate-800 text-slate-300' : 'border-slate-200 hover:bg-slate-100 text-slate-700'
-                    }`}
-                  >
-                    Bekor qilish
-                  </button>
-                  <button
-                    type="submit"
-                    className="w-1/2 py-3 bg-teal-600 hover:bg-teal-500 text-white font-bold rounded-2xl text-xs transition shadow-md"
-                  >
-                    Xizmatni buyurtma qilish
-                  </button>
-                </div>
-              </form>
-            )}
-          </div>
-        </div>
-      )}
 
     </div>
   );

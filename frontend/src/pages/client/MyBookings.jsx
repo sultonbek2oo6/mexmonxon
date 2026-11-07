@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useOutletContext, Link } from 'react-router-dom';
 import axios from 'axios';
-import { api } from '../../lib/api';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+import { api, API_URL } from '../../lib/api';
 
 const MyBookings = () => {
   const { isDarkMode } = useOutletContext();

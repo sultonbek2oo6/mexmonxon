@@ -29,11 +29,19 @@ export const createBooking = async (req, res) => {
   let failedStep = 'Oracle bazasiga ulanish';
   try {
     connection = await oracledb.getConnection();
+    const dateValidity = await connection.execute(
+      `SELECT 1 VALID FROM DUAL WHERE TO_DATE(:checkInDate, 'YYYY-MM-DD') >= TRUNC(SYSDATE)`,
+      { checkInDate }, { outFormat: oracledb.OUT_FORMAT_OBJECT }
+    );
+    if (!dateValidity.rows.length) {
+      await connection.rollback();
+      return res.status(400).json({ message: 'Kirish sanasi bugun yoki undan keyin bo‘lishi kerak.' });
+    }
     failedStep = 'Xona mavjudligini tekshirish';
     const room = await connection.execute(
       `SELECT rt.BASE_PRICE FROM MEXMONXONALAR_TIZIMI.ROOMS r
        JOIN MEXMONXONALAR_TIZIMI.ROOM_TYPES rt ON rt.ID = r.TYPE_ID
-       WHERE r.ID = :roomId AND LOWER(TRIM(r.STATUS)) NOT IN ('cleaning', 'maintenance', 'ta’mirda')
+       WHERE r.ID = :roomId AND LOWER(TRIM(r.STATUS)) NOT IN ('cleaning', 'maintenance', 'under maintenance', 'ta’mirda', 'ta''mirda')
        FOR UPDATE OF r.ID`,
       { roomId }, { outFormat: oracledb.OUT_FORMAT_OBJECT }
     );
@@ -45,7 +53,7 @@ export const createBooking = async (req, res) => {
     failedStep = 'Bron sanalari to‘qnashuvini tekshirish';
     const overlap = await connection.execute(
       `SELECT ID FROM MEXMONXONALAR_TIZIMI.BOOKINGS
-       WHERE ROOM_ID = :roomId AND LOWER(STATUS) NOT IN ('cancelled', 'bekor qilingan')
+       WHERE ROOM_ID = :roomId AND LOWER(TRIM(STATUS)) NOT IN ('cancelled', 'canceled', 'bekor qilingan', 'completed', 'completed early')
          AND CHECK_IN_DATE < TO_DATE(:checkOutDate, 'YYYY-MM-DD')
          AND CHECK_OUT_DATE > TO_DATE(:checkInDate, 'YYYY-MM-DD')`,
       { roomId, checkInDate, checkOutDate }, { outFormat: oracledb.OUT_FORMAT_OBJECT }
@@ -135,9 +143,9 @@ export const getBookingServiceOrders = async (req, res) => {
            SELECT staff_by_room.ROOM_ID,
                   LISTAGG(staff_by_room.STAFF_NAME, ', ') WITHIN GROUP (ORDER BY staff_by_room.STAFF_NAME) AS ROOM_STAFF
              FROM (
-               SELECT DISTINCT h.ROOM_ID, e.FIRST_NAME || ' ' || e.LAST_NAME AS STAFF_NAME
-                 FROM MEXMONXONALAR_TIZIMI.HOUSEKEEPING h
-                 JOIN MEXMONXONALAR_TIZIMI.EMPLOYEES e ON e.ID = h.EMPLOYEE_ID
+               SELECT DISTINCT a.ROOM_ID, e.FIRST_NAME || ' ' || e.LAST_NAME AS STAFF_NAME
+                 FROM MEXMONXONALAR_TIZIMI.EMPLOYEE_ROOM_ASSIGNMENTS a
+                 JOIN MEXMONXONALAR_TIZIMI.EMPLOYEES e ON e.ID = a.EMPLOYEE_ID AND e.IS_ACTIVE=1
              ) staff_by_room
             GROUP BY staff_by_room.ROOM_ID
          ) room_staff ON room_staff.ROOM_ID = b.ROOM_ID

@@ -37,3 +37,22 @@ export async function executeQuery(sql, binds = {}, opts = {}) {
     }
   }
 }
+
+export async function executeTransaction(work) {
+  const connection = await oracledb.getConnection();
+  const query = (sql, binds = {}, opts = {}) => connection.execute(sql, binds, {
+    ...opts,
+    outFormat: oracledb.OUT_FORMAT_OBJECT,
+    autoCommit: false
+  });
+  try {
+    const result = await work(query);
+    await connection.commit();
+    return result;
+  } catch (error) {
+    await connection.rollback().catch(() => {});
+    throw error;
+  } finally {
+    await connection.close().catch((error) => console.error('Ulanishni yopishda xatolik:', error));
+  }
+}

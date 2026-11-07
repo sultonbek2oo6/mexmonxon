@@ -1,10 +1,12 @@
 import express from 'express';
-import { createPayment, getAllPayments } from '../controllers/paymentController.js';
-import { protect, authorize } from '../middlewares/authMiddleware.js';
+import { getAllPayments, getFinanceSummary, getExpenses, createExpense } from '../controllers/paymentController.js';
+import { protect, authorizePermission, authorizeManager } from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
 
-router.post('/', createPayment);
-router.get('/', protect, authorize('admin'), getAllPayments);
+router.get('/summary', protect, authorizePermission('payments'), getFinanceSummary);
+router.get('/expenses', protect, authorizePermission('payments'), getExpenses);
+router.post('/expenses', protect, authorizeManager, createExpense);
+router.get('/', protect, authorizePermission('payments'), getAllPayments);
 
 export default router;

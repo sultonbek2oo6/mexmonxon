@@ -10,7 +10,8 @@ import {
   ConciergeBell, 
   ShoppingBag, 
   CheckCircle2, 
-  Clock, 
+  Edit2,
+  Trash2,
   X,
   Plus,
   Filter,
@@ -18,24 +19,28 @@ import {
 } from 'lucide-react';
 import { api } from '../../lib/api';
 
-const Housekeeping = () => {
+const Housekeeping = ({ section = 'services' }) => {
   const { isDarkMode } = useOutletContext();
 
-  const [activeTab, setActiveTab] = useState('services'); // 'services' | 'orders'
+  const activeTab = section;
   const [selectedOrderService, setSelectedOrderService] = useState(null);
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
   const [roomNumber, setRoomNumber] = useState('');
-  const [note, setNote] = useState('');
   const [cleaningTasks, setCleaningTasks] = useState([]);
   const [roomOptions, setRoomOptions] = useState([]);
   const [staffOptions, setStaffOptions] = useState([]);
   const [taskForm, setTaskForm] = useState({ room_id: '', employee_id: '', status: 'pending' });
   const loadCleaning = async () => {
-    const [tasks, rooms, staff] = await Promise.all([api('/admin/housekeeping'), api('/rooms'), api('/employees')]);
+    const [tasks, rooms, staff] = await Promise.all([api('/admin/housekeeping'), api('/rooms'), api('/employees/assignees')]);
     setCleaningTasks(tasks); setRoomOptions(rooms); setStaffOptions(staff);
-    setTaskForm((old) => ({ ...old, room_id: old.room_id || String(rooms[0]?.ID || ''), employee_id: old.employee_id || String(staff[0]?.ID || '') }));
+    setTaskForm((old) => {
+      const roomId = old.room_id || String(rooms[0]?.ID || '');
+      const assignedStaff = staff.filter((employee) => String(employee.ASSIGNED_ROOM_IDS || '').split(',').includes(roomId));
+      const employeeId = assignedStaff.some((employee) => String(employee.ID) === old.employee_id) ? old.employee_id : String(assignedStaff[0]?.ID || '');
+      return { ...old, room_id: roomId, employee_id: employeeId };
+    });
   };
-  useEffect(() => { loadCleaning().catch((error) => console.error('Housekeeping tasks loading failed:', error)); }, []);
+  useEffect(() => { if (section === 'cleaning') loadCleaning().catch((error) => console.error('Housekeeping tasks loading failed:', error)); }, [section]);
   const saveTask = async (event) => {
     event.preventDefault();
     try { await api('/admin/housekeeping', { method: 'POST', body: JSON.stringify(taskForm) }); await loadCleaning(); }
@@ -52,7 +57,38 @@ const Housekeeping = () => {
 
   // Rasmda ko'rsatilgan Hotel Services (Mehmonxona Xizmatlari)
   const [services, setServices] = useState([]);
-  useEffect(() => { api('/services').then((data) => setServices(data.map((s, index) => ({ id: s.ID, name: s.SERVICE_NAME, subtitle: 'Hotel service', price: `${Number(s.PRICE).toLocaleString()} UZS`, icon: [Utensils, Sparkles, Dumbbell, Car, Shirt, ConciergeBell, ShoppingBag][index % 7], color: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' })))).catch((error) => console.error('Services loading failed:', error)); }, []);
+  const [servicesLoading, setServicesLoading] = useState(false);
+  const [servicesError, setServicesError] = useState('');
+  const [serviceModalOpen, setServiceModalOpen] = useState(false);
+  const [editingService, setEditingService] = useState(null);
+  const [serviceForm, setServiceForm] = useState({ name: '', price: '' });
+  const iconOptions = [Utensils, Sparkles, Dumbbell, Car, Shirt, ConciergeBell, ShoppingBag];
+  const loadServices = async () => {
+    setServicesLoading(true);
+    setServicesError('');
+    try {
+      const data = await api('/services');
+      setServices(data.map((s, index) => ({ id: s.ID, name: s.SERVICE_NAME, subtitle: 'Hotel xizmati', price: `${Number(s.PRICE || 0).toLocaleString()} UZS`, rawPrice: Number(s.PRICE || 0), icon: iconOptions[index % iconOptions.length], color: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' })));
+    } catch (error) { setServicesError(error.message || 'Xizmatlarni yuklab bo‘lmadi.'); }
+    finally { setServicesLoading(false); }
+  };
+  useEffect(() => { if (section !== 'cleaning') loadServices(); }, [section]);
+
+  const saveService = async (event) => {
+    event.preventDefault();
+    try {
+      await api(`/services${editingService ? `/${editingService.id}` : ''}`, { method: editingService ? 'PUT' : 'POST', body: JSON.stringify({ service_name: serviceForm.name.trim(), price: Number(serviceForm.price) }) });
+      await loadServices();
+      setServiceModalOpen(false);
+      setEditingService(null);
+      setServiceForm({ name: '', price: '' });
+    } catch (error) { window.alert(error.message); }
+  };
+  const deleteService = async (service) => {
+    if (!window.confirm(`${service.name} xizmatini o‘chirmoqchimisiz? Oldingi buyurtmalarga ulangan bo‘lsa, o‘chirish rad etiladi.`)) return;
+    try { await api(`/services/${service.id}`, { method: 'DELETE' }); await loadServices(); }
+    catch (error) { window.alert(error.message); }
+  };
   /*
   const [services] = useState([
     {
@@ -110,6 +146,7 @@ const Housekeeping = () => {
   const [ordersError, setOrdersError] = useState('');
 
   useEffect(() => {
+    if (section !== 'orders') return;
     const loadOrders = async () => {
       setOrdersLoading(true);
       try {
@@ -122,7 +159,7 @@ const Housekeeping = () => {
           scheduledAt: order.SCHEDULED_AT,
           staffNames: order.STAFF_NAMES || 'Xodim biriktirilmagan',
           guestName: order.GUEST_NAME,
-          status: 'Scheduled'
+          status: 'Qabul qilindi'
         })));
       } catch (error) {
         console.error('Xizmat buyurtmalarini yuklashda xatolik:', error);
@@ -132,7 +169,7 @@ const Housekeeping = () => {
       }
     };
     loadOrders();
-  }, []);
+  }, [section]);
 
   const handleOpenOrderModal = (service) => {
     setSelectedOrderService(service);
@@ -146,11 +183,10 @@ const Housekeeping = () => {
     try {
       await api('/admin/service-orders', { method: 'POST', body: JSON.stringify({ room_number: roomNumber, service_id: selectedOrderService.id }) });
       const orders = await api('/services/orders');
-      setServiceOrders(orders.map((order) => ({ id: order.ID, roomNo: order.ROOM_NUMBER, serviceName: order.SERVICE_NAME, price: `${Number(order.TOTAL_PRICE || 0).toLocaleString()} UZS`, scheduledAt: order.SCHEDULED_AT, staffNames: order.STAFF_NAMES || 'Xodim biriktirilmagan', guestName: order.GUEST_NAME, status: 'Scheduled' })));
+      setServiceOrders(orders.map((order) => ({ id: order.ID, roomNo: order.ROOM_NUMBER, serviceName: order.SERVICE_NAME, price: `${Number(order.TOTAL_PRICE || 0).toLocaleString()} UZS`, scheduledAt: order.SCHEDULED_AT, staffNames: order.STAFF_NAMES || 'Xodim biriktirilmagan', guestName: order.GUEST_NAME, status: 'Qabul qilindi' })));
     } catch (error) { window.alert(error.message); return; }
     setIsOrderModalOpen(false);
     setRoomNumber('');
-    setNote('');
   };
 
   const getStatusBadge = (status) => {
@@ -161,7 +197,7 @@ const Housekeeping = () => {
         return 'bg-amber-500/10 text-amber-500 border-amber-500/30';
       case 'Pending':
         return 'bg-sky-500/10 text-sky-400 border-sky-500/30';
-      case 'Scheduled':
+      case 'Qabul qilindi':
         return 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30';
       default:
         return 'bg-slate-500/10 text-slate-400 border-slate-500/30';
@@ -175,60 +211,22 @@ const Housekeeping = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className={`text-3xl font-serif font-bold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
-            Housekeeping
+            {section === 'cleaning' ? 'Xonalarni tozalash' : section === 'orders' ? 'Xizmat buyurtmalari' : 'Mehmonxona xizmatlari'}
           </h1>
-          <p className="text-slate-400 text-sm mt-1">Manage hotel services and customer service requests.</p>
+          <p className="text-slate-400 text-sm mt-1">{section === 'cleaning' ? 'Xona tozalash vazifalarini taqsimlang va holatini kuzating.' : section === 'orders' ? 'Mehmonlar buyurtma qilgan xizmatlarni ko‘ring.' : 'Mehmonlarga taklif qilinadigan xizmatlarni ko‘ring va buyurtma yarating.'}</p>
         </div>
-      </div>
-
-      {/* Tab Navigatsiyasi (Services / Service Orders) */}
-      <div className="flex border-b border-slate-700/50 space-x-6">
-        <button
-          onClick={() => setActiveTab('services')}
-          className={`flex items-center space-x-2 pb-3 font-semibold text-sm border-b-2 transition duration-200 ${
-            activeTab === 'services'
-              ? 'border-emerald-500 text-emerald-500'
-              : 'border-transparent text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          <ShoppingBag className="w-4 h-4" />
-          <span>Services</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('orders')}
-          className={`flex items-center space-x-2 pb-3 font-semibold text-sm border-b-2 transition duration-200 ${
-            activeTab === 'orders'
-              ? 'border-emerald-500 text-emerald-500'
-              : 'border-transparent text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          <Clock className="w-4 h-4" />
-          <span>Service Orders</span>
-          {serviceOrders.length > 0 && (
-            <span className="ml-1.5 px-2 py-0.2 rounded-full text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold">
-              {serviceOrders.length}
-            </span>
-          )}
-        </button>
-        <button
-          onClick={() => setActiveTab('cleaning')}
-          className={`flex items-center space-x-2 pb-3 font-semibold text-sm border-b-2 transition duration-200 ${activeTab === 'cleaning' ? 'border-emerald-500 text-emerald-500' : 'border-transparent text-slate-400 hover:text-slate-200'}`}
-        >
-          <Sparkles className="w-4 h-4" /><span>Room Cleaning</span>
-        </button>
       </div>
 
       {activeTab === 'cleaning' && (
         <div className="space-y-5">
           <form onSubmit={saveTask} className={`p-4 rounded-2xl border grid grid-cols-1 sm:grid-cols-3 gap-3 ${isDarkMode ? 'bg-[#0f172a] border-slate-800/80' : 'bg-white border-slate-200 shadow-sm'}`}>
-            <select required value={taskForm.room_id} onChange={(e) => setTaskForm({ ...taskForm, room_id: e.target.value })} className={`px-3 py-2 rounded-xl border ${isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}>
+            <select required value={taskForm.room_id} onChange={(e) => { const roomId = e.target.value; const assigned = staffOptions.filter((employee) => String(employee.ASSIGNED_ROOM_IDS || '').split(',').includes(roomId)); setTaskForm({ ...taskForm, room_id: roomId, employee_id: String(assigned[0]?.ID || '') }); }} className={`px-3 py-2 rounded-xl border ${isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}>
               {roomOptions.map((room) => <option key={room.ID} value={room.ID}>Room {room.ROOM_NUMBER}</option>)}
             </select>
             <select required value={taskForm.employee_id} onChange={(e) => setTaskForm({ ...taskForm, employee_id: e.target.value })} className={`px-3 py-2 rounded-xl border ${isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}>
-              {staffOptions.map((staff) => <option key={staff.ID} value={staff.ID}>{staff.FIRST_NAME} {staff.LAST_NAME}</option>)}
+              {staffOptions.filter((employee) => String(employee.ASSIGNED_ROOM_IDS || '').split(',').includes(taskForm.room_id)).map((staff) => <option key={staff.ID} value={staff.ID}>{staff.FIRST_NAME} {staff.LAST_NAME}</option>)}
             </select>
-            <button disabled={!roomOptions.length || !staffOptions.length} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-semibold rounded-xl">Assign cleaning</button>
+            <button disabled={!roomOptions.length || !taskForm.employee_id} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-semibold rounded-xl">Assign cleaning</button>
           </form>
           <div className={`rounded-2xl border overflow-x-auto ${isDarkMode ? 'bg-[#0f172a] border-slate-800/80' : 'bg-white border-slate-200 shadow-sm'}`}>
             <table className="w-full text-left text-sm"><thead><tr className="text-xs uppercase text-slate-400"><th className="p-4">Room</th><th className="p-4">Employee</th><th className="p-4">Status</th><th className="p-4">Updated</th><th className="p-4">Actions</th></tr></thead>
@@ -241,9 +239,9 @@ const Housekeeping = () => {
       {/* 1-TAB: SERVICES (Mehmonxona xizmatlari kartochkalari) */}
       {activeTab === 'services' && (
         <div className="space-y-4">
-          <h2 className={`text-lg font-bold ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>
-            Hotel Services
-          </h2>
+          <div className="flex items-center justify-between gap-3"><h2 className={`text-lg font-bold ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>Hotel Services</h2><button onClick={() => { setEditingService(null); setServiceForm({ name: '', price: '' }); setServiceModalOpen(true); }} className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500"><Plus className="h-4 w-4" />Xizmat qo‘shish</button></div>
+          {servicesError && <div role="alert" className="flex items-center justify-between rounded-xl border border-rose-500/30 bg-rose-500/10 p-4 text-sm text-rose-400">{servicesError}<button onClick={loadServices} className="underline">Qayta urinish</button></div>}
+          {servicesLoading && <p className="text-sm text-slate-400">Xizmatlar yuklanmoqda…</p>}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {services.map((item) => {
@@ -283,15 +281,15 @@ const Housekeeping = () => {
                   </div>
 
                   {/* Buyurtma Berish Tugmasi */}
-                  <button
-                    onClick={() => handleOpenOrderModal(item)}
-                    className="mt-6 w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl shadow-lg shadow-emerald-600/20 transition duration-200 text-sm flex items-center justify-center space-x-2"
-                  >
-                    <span>Order</span>
-                  </button>
+                  <div className="mt-6 grid grid-cols-[1fr_auto_auto] gap-2">
+                    <button onClick={() => handleOpenOrderModal(item)} className="rounded-xl bg-emerald-600 py-2.5 text-sm font-semibold text-white hover:bg-emerald-500">Buyurtma</button>
+                    <button onClick={() => { setEditingService(item); setServiceForm({ name: item.name, price: String(item.rawPrice) }); setServiceModalOpen(true); }} aria-label={`${item.name} xizmatini tahrirlash`} className="rounded-xl border border-slate-700 px-3 text-slate-300 hover:text-emerald-400"><Edit2 className="h-4 w-4" /></button>
+                    <button onClick={() => deleteService(item)} aria-label={`${item.name} xizmatini o‘chirish`} className="rounded-xl border border-slate-700 px-3 text-rose-400 hover:bg-rose-500/10"><Trash2 className="h-4 w-4" /></button>
+                  </div>
                 </div>
               );
             })}
+            {!servicesLoading && !servicesError && !services.length && <p className="col-span-full rounded-xl border border-dashed border-slate-700 p-8 text-center text-sm text-slate-400">Xizmatlar hali qo‘shilmagan.</p>}
           </div>
         </div>
       )}
@@ -311,7 +309,7 @@ const Housekeeping = () => {
                   <th className="py-4 px-6">Room No</th>
                   <th className="py-4 px-6">Service Name</th>
                   <th className="py-4 px-6">Price</th>
-                  <th className="py-4 px-6">Scheduled time</th>
+                  <th className="py-4 px-6">Buyurtma vaqti</th>
                   <th className="py-4 px-6">Assigned staff</th>
                   <th className="py-4 px-6">Status</th>
                 </tr>
@@ -329,7 +327,7 @@ const Housekeeping = () => {
                       </td>
                       <td className="py-4 px-6 text-slate-300 font-medium">{order.serviceName}</td>
                       <td className="py-4 px-6 text-emerald-500 font-bold">{order.price}</td>
-                      <td className="py-4 px-6 text-slate-400 text-xs">{order.scheduledAt ? new Date(order.scheduledAt).toLocaleString() : order.time}</td>
+                      <td className="py-4 px-6 text-slate-400 text-xs">{order.scheduledAt ? new Date(order.scheduledAt).toLocaleString() : '—'}</td>
                       <td className="py-4 px-6 text-slate-300 text-xs">{order.staffNames || 'Xodim biriktirilmagan'}</td>
                       <td className="py-4 px-6">
                         <span className={`px-3 py-1 rounded-lg text-xs font-semibold border ${getStatusBadge(order.status)}`}>
@@ -418,19 +416,6 @@ const Housekeeping = () => {
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1">Additional Note (Optional)</label>
-                <textarea
-                  rows="3"
-                  placeholder="e.g. Bring extra towels..."
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
-                  className={`w-full px-3.5 py-2 rounded-xl border focus:outline-none focus:border-emerald-500 ${
-                    isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
-                  }`}
-                ></textarea>
-              </div>
-
               <div className="pt-3 flex space-x-3">
                 <button
                   type="button"
@@ -450,6 +435,13 @@ const Housekeeping = () => {
           </div>
         </div>
       )}
+
+      {serviceModalOpen && <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4 backdrop-blur-sm"><form onSubmit={saveService} className={`w-full max-w-md rounded-2xl border p-6 shadow-2xl ${isDarkMode ? 'bg-[#0f172a] border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+        <div className="flex items-center justify-between"><h2 className="text-xl font-bold">{editingService ? 'Xizmatni tahrirlash' : 'Yangi xizmat'}</h2><button type="button" onClick={() => setServiceModalOpen(false)} aria-label="Yopish"><X /></button></div>
+        <label className="mt-5 block text-sm">Xizmat nomi<input required maxLength="120" value={serviceForm.name} onChange={(event) => setServiceForm({ ...serviceForm, name: event.target.value })} className={`mt-2 w-full rounded-xl border px-3 py-2 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} /></label>
+        <label className="mt-4 block text-sm">Narx (UZS)<input required min="0" step="0.01" type="number" value={serviceForm.price} onChange={(event) => setServiceForm({ ...serviceForm, price: event.target.value })} className={`mt-2 w-full rounded-xl border px-3 py-2 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} /></label>
+        <div className="mt-6 flex justify-end gap-2"><button type="button" onClick={() => setServiceModalOpen(false)} className="rounded-xl border border-slate-700 px-4 py-2 text-sm">Bekor qilish</button><button className="rounded-xl bg-emerald-600 px-5 py-2 text-sm font-semibold text-white">Saqlash</button></div>
+      </form></div>}
 
     </div>
   );
