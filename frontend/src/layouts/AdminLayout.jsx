@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { Check, X as CloseIcon } from 'lucide-react';
 import { api } from '../lib/api';
+import BrandLockup from '../components/BrandLockup';
 
 const readStorageJson = (key, fallback) => {
   try { return JSON.parse(localStorage.getItem(key) || 'null') ?? fallback; }
@@ -133,12 +134,7 @@ const AdminLayout = () => {
         <div>
           {/* Logo */}
           <div className="flex items-center justify-between px-6 py-5 border-b border-slate-800/60">
-            <div className="flex items-center space-x-3">
-              <div className="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 font-bold text-lg shadow-inner">
-                🏨
-              </div>
-              <span className="text-xl font-bold tracking-tight text-white font-serif">Grand Hotel</span>
-            </div>
+            <BrandLockup small />
             <button onClick={toggleSidebar} className="lg:hidden text-slate-400 hover:text-white">
               <X className="w-6 h-6" />
             </button>

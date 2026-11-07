@@ -1,10 +1,13 @@
 import React, { useCallback, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import HotelIntro from './HotelIntro';
+import AuthAtmosphere from './AuthAtmosphere';
+import BrandLockup from '../../components/BrandLockup';
 import { API_URL } from '../../lib/api';
 
 const Register = () => {
+  const reduceMotion = useReducedMotion();
   const [introComplete, setIntroComplete] = useState(false);
   const completeIntro = useCallback(() => setIntroComplete(true), []);
   const [fullName, setFullName] = useState('');
@@ -66,57 +69,40 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center relative overflow-hidden font-sans py-10">
+    <div className="relative flex min-h-[100svh] w-full items-center justify-center overflow-x-hidden px-1 py-8 font-sans sm:py-12">
       <HotelIntro onComplete={completeIntro} />
       <motion.div
         initial={{ scale: 1.08 }}
         animate={{ scale: 1.015 }}
-        transition={{ duration: 18, ease: 'linear', repeat: Infinity, repeatType: 'reverse' }}
+        transition={{ duration: reduceMotion ? 0 : 24, ease: 'linear', repeat: Infinity, repeatType: 'reverse' }}
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
         style={{
           backgroundImage: `url('https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&q=80&w=1920')`
         }}
       />
       <div className="absolute inset-0 bg-gradient-to-br from-slate-950/65 via-slate-950/35 to-amber-950/45 backdrop-blur-[2px]" />
+      <AuthAtmosphere />
       <motion.div
         aria-hidden="true"
         className="pointer-events-none absolute -left-40 top-[-20%] h-[140%] w-56 rotate-[18deg] bg-gradient-to-r from-transparent via-amber-100/10 to-transparent blur-2xl"
-        animate={{ x: ['-20vw', '120vw'] }}
-        transition={{ duration: 12, ease: 'easeInOut', repeat: Infinity, repeatDelay: 2 }}
-      />
-      <motion.div
-        aria-hidden="true"
-        className="pointer-events-none absolute left-[12%] top-[22%] h-2 w-2 rounded-full bg-amber-200/70 shadow-[0_0_24px_8px_rgba(251,191,36,0.24)]"
-        animate={{ y: [0, -22, 0], opacity: [0.35, 0.9, 0.35], scale: [0.8, 1.2, 0.8] }}
-        transition={{ duration: 5, ease: 'easeInOut', repeat: Infinity }}
-      />
-      <motion.div
-        aria-hidden="true"
-        className="pointer-events-none absolute bottom-[18%] right-[15%] h-1.5 w-1.5 rounded-full bg-amber-100/70 shadow-[0_0_20px_7px_rgba(251,191,36,0.2)]"
-        animate={{ y: [0, 18, 0], opacity: [0.25, 0.8, 0.25] }}
-        transition={{ duration: 6, ease: 'easeInOut', repeat: Infinity, delay: 1, repeatType: 'reverse' }}
+        animate={reduceMotion ? { opacity: 0.25 } : { x: ['-20vw', '120vw'] }}
+        transition={{ duration: 16, ease: 'easeInOut', repeat: Infinity, repeatDelay: 3 }}
       />
 
       {introComplete && <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="absolute top-6 left-8 z-10 flex items-center gap-3"
+        transition={{ duration: reduceMotion ? 0 : 0.8, delay: reduceMotion ? 0 : 0.2, ease: 'easeOut' }}
+        className="absolute left-5 top-5 z-10 flex items-center gap-3 sm:left-8 sm:top-6"
       >
-        <div className="relative w-11 h-11 rounded-2xl bg-gradient-to-br from-amber-200 to-amber-600 flex items-center justify-center font-serif font-bold text-slate-950 text-xl shadow-[0_8px_30px_rgba(217,165,84,0.35)] border border-amber-100/60">
-          <span>Sj</span>
-        </div>
-        <div className="flex flex-col">
-          <span className="text-xl font-bold tracking-wide text-white uppercase leading-none drop-shadow-md">Grand Hotel</span>
-          <span className="text-[10px] text-amber-100/80 tracking-[0.22em] uppercase">Sultonbek Juraboyev</span>
-        </div>
+        <BrandLockup />
       </motion.div>}
 
       {introComplete && <motion.div
         initial={{ opacity: 0, scale: 0.94, y: 28, filter: 'blur(8px)' }}
         animate={{ opacity: 1, scale: 1, y: 0, filter: 'blur(0px)' }}
-        transition={{ duration: 0.85, delay: 0.12, ease: [0.22, 1, 0.36, 1] }}
-        className="relative z-10 w-full max-w-md mx-4 overflow-hidden rounded-[1.75rem] border border-amber-100/25 bg-slate-950/55 p-8 shadow-[0_24px_80px_rgba(0,0,0,0.55)] backdrop-blur-2xl"
+        transition={{ duration: reduceMotion ? 0 : 1.05, delay: reduceMotion ? 0 : 0.35, ease: [0.22, 1, 0.36, 1] }}
+        className="relative z-10 my-auto w-full max-w-md mx-4 overflow-hidden rounded-[1.5rem] border border-amber-100/25 bg-slate-950/55 p-5 shadow-[0_24px_80px_rgba(0,0,0,0.55)] backdrop-blur-2xl sm:rounded-[1.75rem] sm:p-8"
       >
         <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-amber-200/80 to-transparent" />
         <div className="text-center mb-6">
@@ -124,7 +110,7 @@ const Register = () => {
             <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-5 w-5"><path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M10 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM19 8v6M22 11h-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
           </div>
           <h2 className="text-2xl font-semibold tracking-wide text-white drop-shadow">Ro'yxatdan o'tish</h2>
-          <p className="text-slate-200/90 text-sm mt-1">Grand Hotel mehmonxonasi hisobini yarating</p>
+          <p className="text-slate-200/90 text-sm mt-1">Novaris mehmonxonasi hisobini yarating</p>
         </div>
 
         {error && (

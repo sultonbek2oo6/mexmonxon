@@ -3,6 +3,7 @@ import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { API_URL } from '../lib/api';
+import BrandLockup from '../components/BrandLockup';
 
 const ClientLayout = ({ isDarkMode, toggleDarkMode }) => {
   const navigate = useNavigate();
@@ -272,10 +273,8 @@ const ClientLayout = ({ isDarkMode, toggleDarkMode }) => {
 
           {/* Logo */}
           <div className="flex items-center gap-2 sm:gap-3">
-            <span className="text-lg sm:text-xl font-black tracking-wider text-teal-500">
-              GRAND HOTEL
-            </span>
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+            <BrandLockup small tone={isDarkMode ? 'light' : 'dark'} />
+            <span className={`hidden sm:inline-flex text-[10px] font-bold px-2 py-0.5 rounded-full border ${
               isDarkMode
                 ? 'bg-teal-500/10 text-teal-400 border-teal-500/30'
                 : 'bg-teal-50 text-teal-700 border-teal-200'

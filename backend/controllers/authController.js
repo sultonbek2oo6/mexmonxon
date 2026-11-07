@@ -130,7 +130,7 @@ export const requestPasswordReset = async (req, res) => {
     await transporter.sendMail({
       from: process.env.SMTP_FROM || process.env.SMTP_USER,
       to: user.EMAIL ?? user.email,
-      subject: 'Grand Hotel — parolni tiklash',
+      subject: 'Novaris — parolni tiklash',
       text: `Parolingizni yangilash uchun ushbu havolani 15 daqiqa ichida oching: ${resetUrl}`,
       html: `<p>Parolni yangilash uchun quyidagi havolani 15 daqiqa ichida oching:</p><p><a href="${resetUrl}">Parolni tiklash</a></p>`
     });

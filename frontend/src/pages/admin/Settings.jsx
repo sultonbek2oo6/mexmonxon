@@ -22,7 +22,7 @@ const Settings = () => {
 
   // General & Hotel Info formasi holati
   const [generalForm, setGeneralForm] = useState({
-    hotelName: 'Grand Hotel',
+    hotelName: 'Novaris',
     address: 'Tashkent, Uzbekistan',
     phone: '+998 71 123 45 67',
     email: 'info@grandhotel.uz',
@@ -51,7 +51,11 @@ const Settings = () => {
     setLoadError('');
     try {
       const settings = await api('/admin/settings');
-      if (settings.general && Object.keys(settings.general).length) setGeneralForm((current) => ({ ...current, ...settings.general }));
+      if (settings.general && Object.keys(settings.general).length) {
+        const general = { ...settings.general };
+        if (!general.hotelName || /^grand hotel$/i.test(general.hotelName.trim())) general.hotelName = 'Novaris';
+        setGeneralForm((current) => ({ ...current, ...general }));
+      }
       if (settings.payment && Object.keys(settings.payment).length) setPaymentForm((current) => ({ ...current, ...settings.payment }));
       if (settings.notifications && Object.keys(settings.notifications).length) setNotifForm((current) => ({ ...current, ...settings.notifications }));
     } catch (error) {
