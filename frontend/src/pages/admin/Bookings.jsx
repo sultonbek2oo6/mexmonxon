@@ -283,7 +283,7 @@ const Bookings = () => {
 
       {/* VIEW DETAILS MODAL */}
       {selectedBooking && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto p-4 bg-black/60 backdrop-blur-sm">
           <div className={`w-full max-w-md p-6 rounded-2xl border shadow-2xl transition-all ${
             isDarkMode ? 'bg-[#0f172a] border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-800'
           }`}>
@@ -341,7 +341,7 @@ const Bookings = () => {
 
       {/* NEW BOOKING MODAL */}
       {isAddModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto p-4 bg-black/60 backdrop-blur-sm">
           <div className={`w-full max-w-lg p-6 rounded-2xl border shadow-2xl transition-all ${
             isDarkMode ? 'bg-[#0f172a] border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-800'
           }`}>
@@ -364,7 +364,7 @@ const Bookings = () => {
                 </select>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-400 mb-1">Room Number</label>
                   <select
@@ -393,7 +393,7 @@ const Bookings = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-400 mb-1">Check-in Date</label>
                   <input

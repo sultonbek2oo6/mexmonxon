@@ -70,8 +70,8 @@ const PaymentModal = ({ isOpen, onClose, itemData, isDarkMode, type = 'room' }) 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className={`w-full max-w-md p-6 sm:p-8 rounded-3xl shadow-2xl border transition-all max-h-[90vh] overflow-y-auto ${
+    <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto p-4 bg-black/60 backdrop-blur-sm">
+      <div className={`w-full max-w-md p-4 sm:p-8 rounded-3xl shadow-2xl border transition-all max-h-[90vh] overflow-y-auto ${
         isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-800'
       }`}>
         <div className="flex items-center justify-between border-b pb-4 mb-4 border-slate-700/30">

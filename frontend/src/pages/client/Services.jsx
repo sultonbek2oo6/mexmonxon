@@ -153,8 +153,8 @@ const Services = () => {
           </div>
         )}
 
-        {/* Xizmatlar Grid - Mobilda 2 tadan (grid-cols-2), kompyuterda 3 tadan (lg:grid-cols-3) */}
-        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-8">
+        {/* Xizmatlar kichik ekranlarda bir, kengroq mobil ekranlarda ikki ustun bo‘ladi. */}
+        <div className="grid grid-cols-1 min-[420px]:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-8">
           {servicesList.map((service) => (
             <div
               key={service.ID || service.id}
@@ -225,7 +225,7 @@ const Services = () => {
 
       {/* BUYURTMA QILISH MODAL OYNASI */}
       {activeModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-opacity">
+        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto p-4 bg-black/60 backdrop-blur-sm transition-opacity">
           <div className={`w-full max-w-md p-6 rounded-3xl shadow-2xl border transition-all ${
             isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-800'
           }`}>
@@ -277,7 +277,7 @@ const Services = () => {
                   </select>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-3">
                   <div>
                     <label className={`block text-[11px] font-bold uppercase tracking-wider mb-1 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Miqdor</label>
                     <input type="number" min="1" max="20" required value={quantity} onChange={(e) => setQuantity(e.target.value)} className={`w-full border rounded-xl p-3 text-sm ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`} />
@@ -294,7 +294,7 @@ const Services = () => {
                 </div>
                 <div>
                   <label className={`block text-[11px] font-bold uppercase tracking-wider mb-1 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Xizmat ko‘rsatish vaqti</label>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-3">
                     <input required type="date" min={scheduleMinDate} max={bookingCheckOut || undefined} value={scheduledDate}
                       onChange={(e) => setScheduledDate(e.target.value)}
                       className={`w-full border rounded-xl p-3 text-sm ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`} />

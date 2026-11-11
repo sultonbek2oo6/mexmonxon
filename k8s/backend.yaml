@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: hotel
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+        - name: backend
+          image: mexmonxon-backend:1
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5001
+          envFrom:
+            - secretRef:
+                name: backend-secret
+          env:
+            - name: PORT
+              value: "5001"
+            - name: NODE_ENV
+              value: "production"
+            - name: DB_CONNECT_STRING
+              value: "oracle-db:1521/FREEPDB1"
+            - name: FRONTEND_URL
+              value: "https://mexmonxon-4c264zghd-sultonbek1.vercel.app"
+            - name: CORS_ORIGINS
+              value: "https://mexmonxon-4c264zghd-sultonbek1.vercel.app,https://mexmonxon-8p2smpjzq-sultonbek1.vercel.app,https://mexmonxon.vercel.app,http://localhost:5173,http://127.0.0.1:5173"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: hotel
+spec:
+  selector:
+    app: backend
+  ports:
+    - port: 5001
+      targetPort: 5001

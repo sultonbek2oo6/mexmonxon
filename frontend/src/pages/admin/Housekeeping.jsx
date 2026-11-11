@@ -373,7 +373,7 @@ const Housekeeping = ({ section = 'services' }) => {
 
       {/* CREATE ORDER MODAL */}
       {isOrderModalOpen && selectedOrderService && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto p-4 bg-black/60 backdrop-blur-sm">
           <div className={`w-full max-w-md p-6 rounded-2xl border shadow-2xl transition-all ${
             isDarkMode ? 'bg-[#0f172a] border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-800'
           }`}>
@@ -436,7 +436,7 @@ const Housekeeping = ({ section = 'services' }) => {
         </div>
       )}
 
-      {serviceModalOpen && <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4 backdrop-blur-sm"><form onSubmit={saveService} className={`w-full max-w-md rounded-2xl border p-6 shadow-2xl ${isDarkMode ? 'bg-[#0f172a] border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+      {serviceModalOpen && <div className="fixed inset-0 z-50 grid place-items-start sm:place-items-center overflow-y-auto bg-black/60 p-4 backdrop-blur-sm"><form onSubmit={saveService} className={`w-full max-w-md rounded-2xl border p-4 sm:p-6 shadow-2xl ${isDarkMode ? 'bg-[#0f172a] border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
         <div className="flex items-center justify-between"><h2 className="text-xl font-bold">{editingService ? 'Xizmatni tahrirlash' : 'Yangi xizmat'}</h2><button type="button" onClick={() => setServiceModalOpen(false)} aria-label="Yopish"><X /></button></div>
         <label className="mt-5 block text-sm">Xizmat nomi<input required maxLength="120" value={serviceForm.name} onChange={(event) => setServiceForm({ ...serviceForm, name: event.target.value })} className={`mt-2 w-full rounded-xl border px-3 py-2 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} /></label>
         <label className="mt-4 block text-sm">Narx (UZS)<input required min="0" step="0.01" type="number" value={serviceForm.price} onChange={(event) => setServiceForm({ ...serviceForm, price: event.target.value })} className={`mt-2 w-full rounded-xl border px-3 py-2 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} /></label>

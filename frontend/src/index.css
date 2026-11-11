@@ -2,6 +2,22 @@
 @tailwind components;
 @tailwind utilities;
 
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+html,
+body {
+  background-color: #081323;
+}
+
+.auth-page {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
 /* Saytdagi BARCHA tugmalar va havolalar uchun mikron-animatsiya */
 button, a {
   transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), 

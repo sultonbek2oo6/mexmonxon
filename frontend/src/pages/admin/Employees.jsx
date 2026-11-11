@@ -96,9 +96,9 @@ const Employees = () => {
         </div>
       </div>
 
-      {selectedEmployee && <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4 backdrop-blur-sm"><div className={`w-full max-w-2xl rounded-2xl border p-6 shadow-2xl ${isDarkMode ? 'bg-[#0f172a] border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+      {selectedEmployee && <div className="fixed inset-0 z-50 grid place-items-start sm:place-items-center overflow-y-auto bg-black/60 p-4 backdrop-blur-sm"><div className={`w-full max-w-2xl rounded-2xl border p-4 sm:p-6 shadow-2xl ${isDarkMode ? 'bg-[#0f172a] border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
         <div className="flex justify-between gap-3"><div><h2 className="text-xl font-bold">Xonalarni biriktirish</h2><p className="mt-1 text-sm text-slate-400">{selectedEmployee.FIRST_NAME} {selectedEmployee.LAST_NAME} · {selectedEmployee.ROLE}</p></div><button onClick={() => setSelectedEmployee(null)} aria-label="Yopish"><X /></button></div>
-        <div className="mt-5 grid max-h-80 grid-cols-2 gap-2 overflow-y-auto sm:grid-cols-3">{rooms.map((room) => {
+        <div className="mt-5 grid max-h-80 grid-cols-1 min-[420px]:grid-cols-2 gap-2 overflow-y-auto sm:grid-cols-3">{rooms.map((room) => {
           const roomId = String(room.ID);
           return <label key={room.ID} className={`flex cursor-pointer items-center gap-2 rounded-xl border p-3 text-sm ${isDarkMode ? 'border-slate-700 bg-slate-900/60' : 'border-slate-200 bg-slate-50'}`}><input type="checkbox" checked={selectedRoomIds.includes(roomId)} onChange={(event) => setSelectedRoomIds((current) => event.target.checked ? [...current, roomId] : current.filter((id) => id !== roomId))} />Xona {room.ROOM_NUMBER}</label>;
         })}</div>

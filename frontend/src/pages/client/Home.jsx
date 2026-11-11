@@ -238,7 +238,7 @@ const Home = () => {
         {loading ? (
           <div className="text-center py-16 text-teal-500 font-bold animate-pulse text-sm">Xonalar yuklanmoqda...</div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+          <div className="grid grid-cols-1 min-[420px]:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
             {rooms.map((room) => (
               <div 
                 key={room.id} 
@@ -305,7 +305,7 @@ const Home = () => {
           </h3>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 sm:gap-4">
+        <div className="grid grid-cols-1 min-[420px]:grid-cols-2 md:grid-cols-5 gap-3 sm:gap-4">
           {services.map((service) => (
             <button
               key={service.id} 

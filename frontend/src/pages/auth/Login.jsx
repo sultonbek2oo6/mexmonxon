@@ -92,7 +92,7 @@ const Login = () => {
   };
 
   return (
-    <div className="relative flex min-h-[100svh] w-full items-center justify-center overflow-x-hidden px-1 py-20 font-sans sm:py-24">
+    <div className="auth-page relative flex w-full items-center justify-center overflow-x-hidden px-1 py-20 font-sans sm:py-24">
       <HotelIntro onComplete={completeIntro} />
       <motion.div
         initial={{ scale: 1.08 }}

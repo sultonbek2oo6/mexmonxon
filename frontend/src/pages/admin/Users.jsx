@@ -270,7 +270,7 @@ const Users = () => {
 
       {/* ADD / EDIT MODAL */}
       {isAddModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto p-4 bg-black/60 backdrop-blur-sm">
           <div className={`w-full max-w-md p-6 rounded-2xl border shadow-2xl transition ${
             isDarkMode ? 'bg-[#0f172a] border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-800'
           }`}>
@@ -279,7 +279,7 @@ const Users = () => {
               <button onClick={() => setIsAddModalOpen(false)} className="p-1 rounded-lg hover:opacity-75"><X className="w-5 h-5" /></button>
             </div>
             <form onSubmit={handleSubmit} className="space-y-4 py-4 text-sm">
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-2">
                 <input 
                   type="text" 
                   placeholder="First Name" 
@@ -324,7 +324,7 @@ const Users = () => {
                 />
               )}
 
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-2">
                 <input 
                   type="text" 
                   placeholder="Phone" 
@@ -366,16 +366,16 @@ const Users = () => {
           </div>
         </div>
       )}
-      {permissionTarget && <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"><div className={`w-full max-w-lg p-6 rounded-2xl border shadow-2xl ${isDarkMode ? 'bg-[#0f172a] border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+      {permissionTarget && <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto p-4 bg-black/60 backdrop-blur-sm"><div className={`w-full max-w-lg p-6 rounded-2xl border shadow-2xl ${isDarkMode ? 'bg-[#0f172a] border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
         <div className="flex items-center justify-between mb-2"><h3 className="text-lg font-bold">{permissionTarget.FIRST_NAME} — admin huquqlari</h3><button onClick={() => setPermissionTarget(null)}><X className="w-5 h-5" /></button></div>
         <p className="text-sm text-slate-400 mb-4">Kerakli bo‘limlarni tanlang. O‘zgarishlar darhol kuchga kiradi.</p>
         <div className="grid sm:grid-cols-2 gap-2">{availablePermissions.map((permission) => <label key={permission} className={`flex items-center gap-3 rounded-xl border p-3 text-sm ${isDarkMode ? 'border-slate-700 bg-slate-900/60' : 'border-slate-200 bg-slate-50'}`}><input type="checkbox" checked={selectedPermissions.includes(permission)} onChange={(event) => setSelectedPermissions((current) => event.target.checked ? [...current, permission] : current.filter((item) => item !== permission))} />{permissionLabels[permission] || permission}</label>)}</div>
         <button onClick={savePermissions} className="w-full mt-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl">Saqlash</button>
       </div></div>}
-      {hireTarget && <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4 backdrop-blur-sm"><form onSubmit={hireUser} className={`w-full max-w-xl rounded-2xl border p-6 shadow-2xl ${isDarkMode ? 'bg-[#0f172a] border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+      {hireTarget && <div className="fixed inset-0 z-50 grid place-items-start sm:place-items-center overflow-y-auto p-4 backdrop-blur-sm bg-black/60"><form onSubmit={hireUser} className={`w-full max-w-xl rounded-2xl border p-4 sm:p-6 shadow-2xl ${isDarkMode ? 'bg-[#0f172a] border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
         <div className="flex justify-between gap-3"><div><h2 className="text-xl font-bold">Xodim sifatida ishga olish</h2><p className="mt-1 text-sm text-slate-400">{hireTarget.FIRST_NAME} {hireTarget.LAST_NAME} · {hireTarget.EMAIL}</p></div><button type="button" onClick={() => setHireTarget(null)} aria-label="Yopish"><X /></button></div>
         <label className="mt-5 block text-sm font-medium">Lavozim<select value={hirePosition} onChange={(event) => setHirePosition(event.target.value)} className={`mt-2 w-full rounded-xl border px-3 py-2 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`}><option>Housekeeper</option><option>Receptionist</option><option>Security</option><option>Accountant</option><option>Maintenance</option></select></label>
-        <div className="mt-4"><div className="text-sm font-medium">Mas’ul xonalar <span className="text-slate-400">(ixtiyoriy, bir nechta tanlash mumkin)</span></div><div className="mt-2 grid max-h-52 grid-cols-2 gap-2 overflow-y-auto sm:grid-cols-3">{hireRooms.map((room) => {
+        <div className="mt-4"><div className="text-sm font-medium">Mas’ul xonalar <span className="text-slate-400">(ixtiyoriy, bir nechta tanlash mumkin)</span></div><div className="mt-2 grid max-h-52 grid-cols-1 min-[420px]:grid-cols-2 gap-2 overflow-y-auto sm:grid-cols-3">{hireRooms.map((room) => {
           const roomId = String(room.ID);
           return <label key={room.ID} className={`flex cursor-pointer items-center gap-2 rounded-xl border p-3 text-sm ${isDarkMode ? 'border-slate-700 bg-slate-900/60' : 'border-slate-200 bg-slate-50'}`}><input type="checkbox" checked={hireRoomIds.includes(roomId)} onChange={(event) => setHireRoomIds((current) => event.target.checked ? [...current, roomId] : current.filter((id) => id !== roomId))} />Xona {room.ROOM_NUMBER}</label>;
         })}</div></div>

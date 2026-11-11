@@ -69,7 +69,7 @@ const Register = () => {
   };
 
   return (
-    <div className="relative flex min-h-[100svh] w-full items-center justify-center overflow-x-hidden px-1 py-8 font-sans sm:py-12">
+    <div className="auth-page relative flex w-full items-center justify-center overflow-x-hidden px-1 py-8 font-sans sm:py-12">
       <HotelIntro onComplete={completeIntro} />
       <motion.div
         initial={{ scale: 1.08 }}
