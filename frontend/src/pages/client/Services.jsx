@@ -153,8 +153,8 @@ const Services = () => {
           </div>
         )}
 
-        {/* Xizmatlar kichik ekranlarda bir, kengroq mobil ekranlarda ikki ustun bo‘ladi. */}
-        <div className="grid grid-cols-1 min-[420px]:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-8">
+        {/* Xizmat kartalari mobil ekranda ikki ustun bo‘lib ko‘rinadi. */}
+        <div className="grid grid-cols-2 gap-3 sm:gap-8 lg:grid-cols-3">
           {servicesList.map((service) => (
             <div
               key={service.ID || service.id}

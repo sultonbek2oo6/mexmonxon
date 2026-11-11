@@ -350,7 +350,7 @@ const Rooms = () => {
 
             {/* O'NG GRID */}
             <div className="lg:col-span-3">
-              <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-3 sm:gap-6">
+              <div className="grid grid-cols-2 gap-3 sm:gap-6">
                 {filteredRooms.map((room) => {
                   const isFav = favorites.includes(room.id);
                   return (
