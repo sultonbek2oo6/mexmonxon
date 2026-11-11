@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="gold" x1="22" y1="24" x2="224" y2="231" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#fff2bf"/><stop offset=".22" stop-color="#cda45e"/><stop offset=".42" stop-color="#f2d58f"/><stop offset=".68" stop-color="#8b6232"/><stop offset=".84" stop-color="#e6c477"/><stop offset="1" stop-color="#76512d"/>
+    </linearGradient>
+    <linearGradient id="edge" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff0b7"/><stop offset=".5" stop-color="#8e6736"/><stop offset="1" stop-color="#e6c477"/></linearGradient>
+    <pattern id="weave" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(42)">
+      <path d="M0 0h6v12H0z" fill="#17191b"/><path d="M6 0h6v12H6z" fill="#202225"/><path d="M1 0v12M7 0v12" stroke="#343638" stroke-width="1" opacity=".7"/>
+    </pattern>
+    <filter id="shadow" x="-.3" y="-.3" width="1.6" height="1.7"><feGaussianBlur in="SourceAlpha" stdDeviation="3"/><feOffset dy="3"/><feComponentTransfer><feFuncA type="linear" slope=".8"/></feComponentTransfer><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="256" height="256" rx="42" fill="#0c0e10"/>
+  <rect x="4" y="4" width="248" height="248" rx="39" fill="url(#weave)" stroke="#54452c" stroke-width="2"/>
+  <rect x="10" y="10" width="236" height="236" rx="34" fill="none" stroke="url(#edge)" stroke-opacity=".5"/>
+  <g filter="url(#shadow)" stroke="url(#gold)" stroke-linejoin="round">
+    <!-- Sculpted Novaris N monogram -->
+    <path d="M34 205 67 50q3-13 16-13h7q10 0 16 9l46 73 21-70q4-13 17-13h10q13 0 10 13l-34 141q-3 13-16 13h-8q-10 0-16-9l-46-73-21 70q-4 13-17 13H44q-13 0-10-13Z" fill="#131211" stroke-width="4"/>
+    <path d="m46 197 31-141q2-8 8-8h5q5 0 9 6l54 86q4 6 8 6t6-7l25-83q2-8 8-8h4q7 0 5 8l-32 132q-2 8-8 8h-5q-5 0-9-6l-54-86q-4-6-8-6t-6 7l-25 83q-2 8-8 8h-4q-7 0-5-8Z" fill="none" stroke-width="1.8"/>
+    <!-- engraved filigree inside the monogram -->
+    <path d="M56 185q17-13 25-1t19-2q10-14 22-3t20-1M65 143q14-13 25-1t19-2q10-14 22-3M82 70q9 7 18 0t18 5M131 105q8 7 17 0t17 4M174 175q8-12 18-6" fill="none" stroke-width="1.25" opacity=".9"/>
+    <path d="m55 179 4 3-4 4-4-3zm21-20 4 3-4 4-4-3zm19-68 4 3-4 4-4-3zm35 33 4 3-4 4-4-3zm39 34 4 3-4 4-4-3z" fill="url(#gold)" stroke-width=".7"/>
+    <!-- ornate compass rose and crescent -->
+    <g transform="translate(204 57)" stroke-width="1.6">
+      <circle r="26" fill="#111211"/><circle r="22" fill="none" stroke-width="1"/><circle r="17" fill="none" stroke-width=".8"/>
+      <circle r="29" fill="none" stroke-width="1" stroke-dasharray="1 3"/>
+      <path d="M0-25 4-5 25 0 4 5 0 25-4 5-25 0-4-5Z" fill="#1a1711" stroke-width="1.8"/>
+      <path d="M0-18 2-2 18 0 2 2 0 18-2 2-18 0-2-2Z" fill="url(#gold)" stroke-width="1"/>
+      <path d="M0-26v52M-26 0h52M-18-18 18 18M18-18-18 18" fill="none" stroke-width=".8"/>
+      <circle r="3" fill="#fff0b7" stroke-width="1"/>
+      <path d="M-2-43a9 9 0 1 0 13 11 11 11 0 0 1-13-11Z" fill="url(#gold)" stroke-width="1.3"/>
+      <path d="M-17 31q8-8 17 0 9-8 17 0l-17 10Z" fill="#16130e" stroke-width="1.4"/>
+      <circle cx="-13" cy="31" r="3" fill="url(#gold)"/><circle cx="13" cy="31" r="3" fill="url(#gold)"/>
+    </g>
+    <path d="M183 218q14-10 28 0 14-10 28 0M194 224q17 8 34 0" fill="none" stroke-width="1.2"/>
+    <path d="M205 211c-8-9-13 2 0 9 13-7 8-18 0-9Z" fill="#17130e" stroke-width="1.2"/>
+  </g>
+</svg>
