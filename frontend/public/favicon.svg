@@ -1,44 +1,37 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
   <defs>
-    <linearGradient id="gold" x1="35" y1="20" x2="220" y2="235" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#fff0bd"/><stop offset=".2" stop-color="#b68b4d"/><stop offset=".42" stop-color="#f0d18a"/><stop offset=".68" stop-color="#76522d"/><stop offset=".84" stop-color="#e9ca7d"/><stop offset="1" stop-color="#9b713c"/>
+    <linearGradient id="gold" x1="22" y1="24" x2="224" y2="231" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#fff2bf"/><stop offset=".22" stop-color="#cda45e"/><stop offset=".42" stop-color="#f2d58f"/><stop offset=".68" stop-color="#8b6232"/><stop offset=".84" stop-color="#e6c477"/><stop offset="1" stop-color="#76512d"/>
     </linearGradient>
-    <radialGradient id="field" cx=".4" cy=".34" r=".8"><stop stop-color="#252523"/><stop offset=".65" stop-color="#111314"/><stop offset="1" stop-color="#080a0c"/></radialGradient>
-    <pattern id="weave" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(42)">
-      <path d="M0 0h4v8H0z" fill="#141618"/><path d="M4 0h4v8H4z" fill="#1b1d1f"/><path d="M1 0v8M5 0v8" stroke="#343638" stroke-width=".7" opacity=".7"/>
+    <linearGradient id="edge" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff0b7"/><stop offset=".5" stop-color="#8e6736"/><stop offset="1" stop-color="#e6c477"/></linearGradient>
+    <pattern id="weave" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(42)">
+      <path d="M0 0h6v12H0z" fill="#17191b"/><path d="M6 0h6v12H6z" fill="#202225"/><path d="M1 0v12M7 0v12" stroke="#343638" stroke-width="1" opacity=".7"/>
     </pattern>
-    <path id="topArc" d="M33 128a95 95 0 0 1 190 0"/>
-    <path id="bottomArc" d="M39 143a89 89 0 0 0 178 0"/>
-    <clipPath id="round"><circle cx="128" cy="128" r="119"/></clipPath>
-    <filter id="emboss" x="-.3" y="-.3" width="1.6" height="1.7"><feGaussianBlur in="SourceAlpha" stdDeviation="2"/><feOffset dy="2"/><feComponentTransfer><feFuncA type="linear" slope=".65"/></feComponentTransfer><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <filter id="shadow" x="-.3" y="-.3" width="1.6" height="1.7"><feGaussianBlur in="SourceAlpha" stdDeviation="3"/><feOffset dy="3"/><feComponentTransfer><feFuncA type="linear" slope=".8"/></feComponentTransfer><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
   </defs>
-  <!-- Circular seal; transparent corners keep the browser icon round. -->
-  <g clip-path="url(#round)">
-    <circle cx="128" cy="128" r="120" fill="url(#weave)"/>
-    <circle cx="128" cy="128" r="113" fill="url(#field)" stroke="url(#gold)" stroke-width="3"/>
-    <circle cx="128" cy="128" r="105" fill="none" stroke="#8e693b" stroke-width="1"/>
-    <circle cx="128" cy="128" r="87" fill="none" stroke="url(#gold)" stroke-width="2.2"/>
-    <circle cx="128" cy="128" r="81" fill="none" stroke="#b08a4f" stroke-width=".9"/>
-    <circle cx="128" cy="128" r="72" fill="none" stroke="#9a7745" stroke-width=".8" stroke-dasharray="1 2.4"/>
-    <g fill="url(#gold)" font-family="Georgia,serif" text-anchor="middle" letter-spacing="2.6">
-      <text font-size="14"><textPath href="#topArc" startOffset="50%">NOVARIS LUXURY STAY</textPath></text>
-      <text font-size="10.5" letter-spacing="1.8"><textPath href="#bottomArc" startOffset="50%">NOVARIS LUXURY STAY</textPath></text>
+  <rect width="256" height="256" rx="42" fill="#0c0e10"/>
+  <rect x="4" y="4" width="248" height="248" rx="39" fill="url(#weave)" stroke="#54452c" stroke-width="2"/>
+  <rect x="10" y="10" width="236" height="236" rx="34" fill="none" stroke="url(#edge)" stroke-opacity=".5"/>
+  <g filter="url(#shadow)" stroke="url(#gold)" stroke-linejoin="round">
+    <!-- Sculpted Novaris N monogram -->
+    <path d="M34 205 67 50q3-13 16-13h7q10 0 16 9l46 73 21-70q4-13 17-13h10q13 0 10 13l-34 141q-3 13-16 13h-8q-10 0-16-9l-46-73-21 70q-4 13-17 13H44q-13 0-10-13Z" fill="#131211" stroke-width="4"/>
+    <path d="m46 197 31-141q2-8 8-8h5q5 0 9 6l54 86q4 6 8 6t6-7l25-83q2-8 8-8h4q7 0 5 8l-32 132q-2 8-8 8h-5q-5 0-9-6l-54-86q-4-6-8-6t-6 7l-25 83q-2 8-8 8h-4q-7 0-5-8Z" fill="none" stroke-width="1.8"/>
+    <!-- engraved filigree inside the monogram -->
+    <path d="M56 185q17-13 25-1t19-2q10-14 22-3t20-1M65 143q14-13 25-1t19-2q10-14 22-3M82 70q9 7 18 0t18 5M131 105q8 7 17 0t17 4M174 175q8-12 18-6" fill="none" stroke-width="1.25" opacity=".9"/>
+    <path d="m55 179 4 3-4 4-4-3zm21-20 4 3-4 4-4-3zm19-68 4 3-4 4-4-3zm35 33 4 3-4 4-4-3zm39 34 4 3-4 4-4-3z" fill="url(#gold)" stroke-width=".7"/>
+    <!-- ornate compass rose and crescent -->
+    <g transform="translate(204 57)" stroke-width="1.6">
+      <circle r="26" fill="#111211"/><circle r="22" fill="none" stroke-width="1"/><circle r="17" fill="none" stroke-width=".8"/>
+      <circle r="29" fill="none" stroke-width="1" stroke-dasharray="1 3"/>
+      <path d="M0-25 4-5 25 0 4 5 0 25-4 5-25 0-4-5Z" fill="#1a1711" stroke-width="1.8"/>
+      <path d="M0-18 2-2 18 0 2 2 0 18-2 2-18 0-2-2Z" fill="url(#gold)" stroke-width="1"/>
+      <path d="M0-26v52M-26 0h52M-18-18 18 18M18-18-18 18" fill="none" stroke-width=".8"/>
+      <circle r="3" fill="#fff0b7" stroke-width="1"/>
+      <path d="M-2-43a9 9 0 1 0 13 11 11 11 0 0 1-13-11Z" fill="url(#gold)" stroke-width="1.3"/>
+      <path d="M-17 31q8-8 17 0 9-8 17 0l-17 10Z" fill="#16130e" stroke-width="1.4"/>
+      <circle cx="-13" cy="31" r="3" fill="url(#gold)"/><circle cx="13" cy="31" r="3" fill="url(#gold)"/>
     </g>
-    <!-- crescent and star -->
-    <path d="M117 57a17 17 0 1 0 26-19 22 22 0 0 1-26 19Z" fill="url(#gold)" stroke="#f0d18a" stroke-width="1"/>
-    <path d="m151 39 2.5 5.4 5.9.7-4.4 3.9 1.2 5.8-5.2-3-5.2 3 1.2-5.8-4.4-3.9 5.9-.7z" fill="url(#gold)"/>
-    <!-- central ornamental monogram and arabesque -->
-    <g filter="url(#emboss)" stroke="url(#gold)" stroke-linejoin="round">
-      <path d="M78 168V91h23l27 42V91h25v77h-22l-29-44v44z" fill="#141310" stroke-width="3.5"/>
-      <path d="M84 162V97h14l30 47V97h19v65h-14l-30-46v46z" fill="none" stroke-width="1.2"/>
-      <path d="M128 91v-9m0 0-8-7 8-9 8 9zm0-16v-9m-25 49q-9-10-15 0 8 3 5 11-8 4-3 11m63-22q9-10 15 0-8 3-5 11 8 4 3 11m-61 29q-10-8-14 1l8 4-3 8m57-13q10-8 14 1l-8 4 3 8" fill="none" stroke-width="1.4"/>
-      <path d="M122 114c-8-8 1-14 6-6 5-8 14-2 6 6-4 4-8 6-12 10-4-4-8-6-12-10zm-3 28c-8-8 1-14 6-6 5-8 14-2 6 6-4 4-8 6-12 10-4-4-8-6-12-10z" fill="none" stroke-width="1.2"/>
-    </g>
-    <!-- seal side studs, filigree and small open-book mark -->
-    <circle cx="51" cy="128" r="2.7" fill="url(#gold)"/><circle cx="205" cy="128" r="2.7" fill="url(#gold)"/>
-    <path d="m39 119 4 6 7 3-7 3-4 7-3-7-7-3 7-3zm178 0 4 6 7 3-7 3-4 7-3-7-7-3 7-3z" fill="none" stroke="url(#gold)" stroke-width="1.5"/>
-    <path d="M105 214q11-7 23 0 12-7 23 0v14q-11-7-23 0-12-7-23 0zM128 214v14" fill="#171511" stroke="url(#gold)" stroke-width="1.4"/>
-    <path d="M52 187q8-3 8 5-8 2-8 9-8-7 0-14zm152 0q-8-3-8 5 8 2 8 9 8-7 0-14zM73 205q8-8 14 0-8 0-7 9zm110 0q-8-8-14 0 8 0 7 9z" fill="none" stroke="url(#gold)" stroke-width="1.3"/>
+    <path d="M183 218q14-10 28 0 14-10 28 0M194 224q17 8 34 0" fill="none" stroke-width="1.2"/>
+    <path d="M205 211c-8-9-13 2 0 9 13-7 8-18 0-9Z" fill="#17130e" stroke-width="1.2"/>
   </g>
-  <circle cx="128" cy="128" r="119" fill="none" stroke="url(#gold)" stroke-width="3"/>
 </svg>
